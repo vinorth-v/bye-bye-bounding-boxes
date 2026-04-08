@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulaire DEMO-2024-01 - Demande d'inscription</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            padding: 10mm;
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5mm;
+            margin-bottom: 5mm;
+        }
+
+        .header-left {
+            width: 30%;
+        }
+
+        .header-center {
+            width: 40%;
+            text-align: center;
+        }
+
+        .header-right {
+            width: 25%;
+            text-align: right;
+            font-size: 8pt;
+        }
+
+        .logo-placeholder {
+            width: 25mm;
+            height: 25mm;
+            border: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7pt;
+            text-align: center;
+        }
+
+        .form-number {
+            background: #f0f0f0;
+            padding: 2mm;
+            border: 1px solid #000;
+            font-weight: bold;
+            margin-bottom: 2mm;
+        }
+
+        .title {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 2mm;
+        }
+
+        .subtitle {
+            font-size: 10pt;
+            color: #333;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #000;
+            padding: 3mm;
+            margin: 4mm 0;
+            font-size: 8pt;
+        }
+
+        .section {
+            border: 1px solid #000;
+            margin-bottom: 4mm;
+            page-break-inside: avoid;
+        }
+
+        .section-header {
+            background: #e0e0e0;
+            padding: 2mm 3mm;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            font-size: 10pt;
+        }
+
+        .section-content {
+            padding: 3mm;
+        }
+
+        .field-row {
+            display: flex;
+            margin-bottom: 3mm;
+            align-items: flex-start;
+        }
+
+        .field-label {
+            min-width: 35mm;
+            font-weight: bold;
+        }
+
+        .field-input {
+            flex: 1;
+            border-bottom: 1px dotted #000;
+            min-height: 5mm;
+            padding-left: 2mm;
+        }
+
+        .field-input-box {
+            border: 1px solid #000;
+            min-height: 8mm;
+            padding: 1mm 2mm;
+            flex: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2mm 5mm;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 1mm;
+        }
+
+        .checkbox {
+            width: 4mm;
+            height: 4mm;
+            border: 1px solid #000;
+            display: inline-block;
+        }
+
+        .checkbox-large {
+            width: 5mm;
+            height: 5mm;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2mm 0;
+        }
+
+        .table th, .table td {
+            border: 1px solid #000;
+            padding: 2mm;
+            text-align: left;
+            font-size: 8pt;
+        }
+
+        .table th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .table-checkbox {
+            text-align: center;
+            width: 12mm;
+        }
+
+        .two-columns {
+            display: flex;
+            gap: 5mm;
+        }
+
+        .two-columns > div {
+            flex: 1;
+        }
+
+        .three-columns {
+            display: flex;
+            gap: 3mm;
+        }
+
+        .three-columns > div {
+            flex: 1;
+        }
+
+        .date-field {
+            display: flex;
+            align-items: center;
+            gap: 1mm;
+        }
+
+        .date-box {
+            width: 6mm;
+            height: 6mm;
+            border: 1px solid #000;
+            text-align: center;
+        }
+
+        .signature-box {
+            border: 1px solid #000;
+            height: 25mm;
+            margin-top: 2mm;
+        }
+
+        .small-text {
+            font-size: 7pt;
+            color: #666;
+        }
+
+        .required {
+            color: red;
+        }
+
+        .inline-checkboxes {
+            display: flex;
+            gap: 8mm;
+            margin-left: 5mm;
+        }
+
+        .scale-row {
+            display: flex;
+            align-items: center;
+            margin: 2mm 0;
+        }
+
+        .scale-label {
+            width: 50mm;
+        }
+
+        .scale-boxes {
+            display: flex;
+            gap: 3mm;
+        }
+
+        .scale-number {
+            text-align: center;
+            font-size: 7pt;
+            width: 8mm;
+        }
+
+        .footer {
+            margin-top: 5mm;
+            padding-top: 3mm;
+            border-top: 1px solid #000;
+            font-size: 7pt;
+            color: #666;
+        }
+
+        .cadre-reserve {
+            border: 2px solid #000;
+            padding: 3mm;
+            background: #fafafa;
+        }
+
+        .cadre-reserve-title {
+            font-weight: bold;
+            margin-bottom: 2mm;
+            font-size: 8pt;
+        }
+
+        .note-box {
+            background: #f9f9f9;
+            border: 1px dashed #999;
+            padding: 2mm;
+            font-size: 8pt;
+            margin: 2mm 0;
+        }
+
+        @media print {
+            body {
+                padding: 5mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- EN-TÊTE -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo-placeholder">
+                LOGO<br>ORGANISME
+            </div>
+        </div>
+        <div class="header-center">
+            <div class="title">DEMANDE D'INSCRIPTION</div>
+            <div class="subtitle">Formation professionnelle continue</div>
+            <div class="subtitle" style="margin-top: 2mm;">Année 2024-2025</div>
+        </div>
+        <div class="header-right">
+            <div class="form-number">DEMO-2024-01</div>
+            <div class="small-text">
+                La loi n°78-17 du 6 janvier 1978<br>
+                relative à l'informatique, aux fichiers<br>
+                et aux libertés s'applique à ce formulaire.
+            </div>
+        </div>
+    </div>
+
+    <div class="warning-box">
+        <strong>ATTENTION :</strong> Ce formulaire doit être rempli en lettres MAJUSCULES à l'encre noire.
+        Cochez les cases correspondant à votre situation. Les champs marqués d'un <span class="required">*</span> sont obligatoires.
+        Tout dossier incomplet sera retourné.
+    </div>
+
+    <!-- SECTION 1 : ÉTAT CIVIL -->
+    <div class="section">
+        <div class="section-header">SECTION 1 - ÉTAT CIVIL DU DEMANDEUR <span class="required">*</span></div>
+        <div class="section-content">
+            <div class="field-row">
+                <span class="field-label">Civilité <span class="required">*</span></span>
+                <div class="inline-checkboxes">
+                    <div class="checkbox-item"><span class="checkbox"></span> M.</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Mme</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Autre</div>
+                </div>
+            </div>
+
+            <div class="two-columns">
+                <div class="field-row">
+                    <span class="field-label">Nom de naissance <span class="required">*</span></span>
+                    <span class="field-input"></span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Nom d'usage</span>
+                    <span class="field-input"></span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">Prénom(s) <span class="required">*</span></span>
+                <span class="field-input"></span>
+            </div>
+
+            <div class="two-columns">
+                <div class="field-row">
+                    <span class="field-label">Date de naissance <span class="required">*</span></span>
+                    <div class="date-field">
+                        <span class="date-box"></span><span class="date-box"></span>
+                        <span>/</span>
+                        <span class="date-box"></span><span class="date-box"></span>
+                        <span>/</span>
+                        <span class="date-box"></span><span class="date-box"></span><span class="date-box"></span><span class="date-box"></span>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Lieu de naissance <span class="required">*</span></span>
+                    <span class="field-input"></span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">Nationalité <span class="required">*</span></span>
+                <div class="inline-checkboxes">
+                    <div class="checkbox-item"><span class="checkbox"></span> Française</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Union Européenne</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Hors UE (préciser) : <span class="field-input" style="width: 40mm;"></span></div>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">N° Sécurité Sociale</span>
+                <div class="date-field">
+                    <span class="date-box"></span>
+                    <span class="date-box"></span><span class="date-box"></span>
+                    <span class="date-box"></span><span class="date-box"></span>
+                    <span class="date-box"></span><span class="date-box"></span>
+                    <span class="date-box"></span><span class="date-box"></span><span class="date-box"></span>
+                    <span class="date-box"></span><span class="date-box"></span><span class="date-box"></span>
+                    <span style="margin: 0 2mm;">Clé:</span>
+                    <span class="date-box"></span><span class="date-box"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 2 : COORDONNÉES -->
+    <div class="section">
+        <div class="section-header">SECTION 2 - COORDONNÉES</div>
+        <div class="section-content">
+            <div class="field-row">
+                <span class="field-label">Adresse <span class="required">*</span></span>
+                <span class="field-input"></span>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Complément</span>
+                <span class="field-input"></span>
+            </div>
+            <div class="three-columns">
+                <div class="field-row">
+                    <span class="field-label">Code postal <span class="required">*</span></span>
+                    <div class="date-field">
+                        <span class="date-box"></span><span class="date-box"></span><span class="date-box"></span><span class="date-box"></span><span class="date-box"></span>
+                    </div>
+                </div>
+                <div class="field-row" style="flex: 2;">
+                    <span class="field-label">Ville <span class="required">*</span></span>
+                    <span class="field-input"></span>
+                </div>
+            </div>
+            <div class="two-columns">
+                <div class="field-row">
+                    <span class="field-label">Téléphone fixe</span>
+                    <span class="field-input"></span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Téléphone mobile <span class="required">*</span></span>
+                    <span class="field-input"></span>
+                </div>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Email <span class="required">*</span></span>
+                <span class="field-input"></span>
+            </div>
+
+            <div class="note-box">
+                <strong>Mode de contact préféré</strong> (cochez une seule case) :
+                <div class="inline-checkboxes" style="margin-top: 2mm;">
+                    <div class="checkbox-item"><span class="checkbox"></span> Courrier postal</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Email</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> SMS</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Téléphone</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 3 : SITUATION PROFESSIONNELLE -->
+    <div class="section">
+        <div class="section-header">SECTION 3 - SITUATION PROFESSIONNELLE ACTUELLE <span class="required">*</span></div>
+        <div class="section-content">
+            <div class="field-row">
+                <span class="field-label">Statut actuel <span class="required">*</span></span>
+                <div class="checkbox-group">
+                    <div class="checkbox-item"><span class="checkbox"></span> Salarié(e) CDI</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Salarié(e) CDD</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Intérimaire</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Fonctionnaire</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Indépendant / Auto-entrepreneur</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Chef d'entreprise</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Demandeur d'emploi</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Étudiant(e)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Retraité(e)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Sans activité</div>
+                </div>
+            </div>
+
+            <div class="field-row" style="margin-top: 3mm;">
+                <span class="field-label">Employeur actuel</span>
+                <span class="field-input"></span>
+            </div>
+
+            <div class="two-columns">
+                <div class="field-row">
+                    <span class="field-label">Fonction / Poste</span>
+                    <span class="field-input"></span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Secteur d'activité</span>
+                    <span class="field-input"></span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">Catégorie socio-professionnelle</span>
+                <div class="checkbox-group">
+                    <div class="checkbox-item"><span class="checkbox"></span> Cadre supérieur</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Cadre</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Technicien / Agent de maîtrise</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Employé</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Ouvrier</div>
+                </div>
+            </div>
+
+            <div class="two-columns" style="margin-top: 3mm;">
+                <div class="field-row">
+                    <span class="field-label">Années d'expérience</span>
+                    <div class="inline-checkboxes">
+                        <div class="checkbox-item"><span class="checkbox"></span> 0-2 ans</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> 3-5 ans</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> 6-10 ans</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> 10+ ans</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 4 : NIVEAU D'ÉTUDES -->
+    <div class="section">
+        <div class="section-header">SECTION 4 - NIVEAU D'ÉTUDES ET DIPLÔMES</div>
+        <div class="section-content">
+            <div class="field-row">
+                <span class="field-label">Dernier diplôme obtenu <span class="required">*</span></span>
+                <div class="checkbox-group">
+                    <div class="checkbox-item"><span class="checkbox"></span> Sans diplôme</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> CAP / BEP</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Baccalauréat</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Bac +2 (BTS, DUT)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Bac +3 (Licence)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Bac +4 (Maîtrise)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Bac +5 (Master, Ingénieur)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Doctorat</div>
+                </div>
+            </div>
+
+            <div class="two-columns" style="margin-top: 3mm;">
+                <div class="field-row">
+                    <span class="field-label">Intitulé du diplôme</span>
+                    <span class="field-input"></span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Année d'obtention</span>
+                    <span class="field-input" style="width: 20mm;"></span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">Établissement</span>
+                <span class="field-input"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 5 : FORMATION SOUHAITÉE -->
+    <div class="section">
+        <div class="section-header">SECTION 5 - FORMATION SOUHAITÉE <span class="required">*</span></div>
+        <div class="section-content">
+
+            <div class="field-row">
+                <span class="field-label">Domaine de formation <span class="required">*</span></span>
+            </div>
+            <div style="margin-left: 5mm; margin-bottom: 3mm;">
+                <div class="checkbox-group">
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Intelligence Artificielle / Machine Learning</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Développement Web / Mobile</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Cloud Computing (AWS, GCP, Azure)</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Data Science / Data Engineering</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Cybersécurité</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> DevOps / SRE</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Gestion de projet / Agilité</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Architecture logicielle</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Autre : <span class="field-input" style="width: 50mm;"></span></div>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">Niveau visé <span class="required">*</span></span>
+                <div class="inline-checkboxes">
+                    <div class="checkbox-item"><span class="checkbox"></span> Initiation</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Intermédiaire</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Avancé</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Expert</div>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">Modalité souhaitée <span class="required">*</span></span>
+                <div class="inline-checkboxes">
+                    <div class="checkbox-item"><span class="checkbox"></span> Présentiel</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Distanciel synchrone</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> E-learning (asynchrone)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Hybride</div>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">Disponibilité <span class="required">*</span></span>
+                <div class="checkbox-group">
+                    <div class="checkbox-item"><span class="checkbox"></span> Temps plein</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Temps partiel (soirs)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Week-ends uniquement</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> À définir selon planning</div>
+                </div>
+            </div>
+
+            <div class="two-columns" style="margin-top: 3mm;">
+                <div class="field-row">
+                    <span class="field-label">Date de début souhaitée</span>
+                    <div class="inline-checkboxes">
+                        <div class="checkbox-item"><span class="checkbox"></span> Dès que possible</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> Septembre 2024</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> Janvier 2025</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 6 : FINANCEMENT -->
+    <div class="section">
+        <div class="section-header">SECTION 6 - MODE DE FINANCEMENT <span class="required">*</span></div>
+        <div class="section-content">
+            <div class="field-row">
+                <span class="field-label">Financement envisagé</span>
+                <span class="small-text">(plusieurs choix possibles)</span>
+            </div>
+            <div style="margin-left: 5mm;">
+                <div class="checkbox-group">
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> CPF (Compte Personnel de Formation)</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Plan de développement des compétences (employeur)</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Pôle Emploi / France Travail (AIF)</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> OPCO de branche</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Transition professionnelle (PTP/CPF-TP)</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Autofinancement personnel</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Région / Collectivité territoriale</div>
+                    <div class="checkbox-item"><span class="checkbox checkbox-large"></span> Autre : <span class="field-input" style="width: 40mm;"></span></div>
+                </div>
+            </div>
+
+            <div class="note-box" style="margin-top: 3mm;">
+                <div class="field-row">
+                    <span class="field-label">Avez-vous déjà un accord de financement ?</span>
+                    <div class="inline-checkboxes">
+                        <div class="checkbox-item"><span class="checkbox"></span> Oui, accord obtenu</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> En cours de demande</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> Non, à initier</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 7 : ÉVALUATION DES COMPÉTENCES -->
+    <div class="section">
+        <div class="section-header">SECTION 7 - AUTO-ÉVALUATION DES COMPÉTENCES ACTUELLES</div>
+        <div class="section-content">
+            <div class="small-text" style="margin-bottom: 3mm;">Évaluez votre niveau actuel de 1 (débutant) à 5 (expert) en cochant la case correspondante :</div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Compétence</th>
+                        <th class="table-checkbox">1</th>
+                        <th class="table-checkbox">2</th>
+                        <th class="table-checkbox">3</th>
+                        <th class="table-checkbox">4</th>
+                        <th class="table-checkbox">5</th>
+                        <th class="table-checkbox">N/A</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Programmation (Python, Java, etc.)</td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                    </tr>
+                    <tr>
+                        <td>Bases de données (SQL, NoSQL)</td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                    </tr>
+                    <tr>
+                        <td>Cloud (AWS, GCP, Azure)</td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                    </tr>
+                    <tr>
+                        <td>Machine Learning / IA</td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                    </tr>
+                    <tr>
+                        <td>DevOps / CI-CD</td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                    </tr>
+                    <tr>
+                        <td>Gestion de projet Agile</td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                    </tr>
+                    <tr>
+                        <td>Anglais technique</td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                        <td class="table-checkbox"><span class="checkbox"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 8 : MOTIVATIONS -->
+    <div class="section">
+        <div class="section-header">SECTION 8 - MOTIVATIONS ET PROJET PROFESSIONNEL</div>
+        <div class="section-content">
+            <div class="field-row">
+                <span class="field-label">Objectif principal de cette formation :</span>
+            </div>
+            <div style="margin-left: 5mm; margin-bottom: 3mm;">
+                <div class="checkbox-group">
+                    <div class="checkbox-item"><span class="checkbox"></span> Reconversion professionnelle</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Montée en compétences sur poste actuel</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Évolution vers un poste de management</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Spécialisation technique</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Obtention d'une certification</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Création d'entreprise</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Retour à l'emploi</div>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <span class="field-label">Décrivez brièvement votre projet professionnel :</span>
+            </div>
+            <div class="field-input-box" style="min-height: 20mm; margin-left: 5mm;"></div>
+        </div>
+    </div>
+
+    <!-- SECTION 9 : SITUATION PARTICULIÈRE -->
+    <div class="section">
+        <div class="section-header">SECTION 9 - SITUATION PARTICULIÈRE (facultatif)</div>
+        <div class="section-content">
+            <div class="field-row">
+                <span class="field-label">Bénéficiez-vous d'une reconnaissance particulière ?</span>
+            </div>
+            <div style="margin-left: 5mm;">
+                <div class="checkbox-group">
+                    <div class="checkbox-item"><span class="checkbox"></span> RQTH (Reconnaissance Qualité Travailleur Handicapé)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Bénéficiaire de l'obligation d'emploi</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Demandeur d'emploi longue durée (> 12 mois)</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Bénéficiaire RSA / ASS</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Parent isolé</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Aucune situation particulière</div>
+                </div>
+            </div>
+
+            <div class="field-row" style="margin-top: 3mm;">
+                <span class="field-label">Avez-vous besoin d'aménagements spécifiques ?</span>
+                <div class="inline-checkboxes">
+                    <div class="checkbox-item"><span class="checkbox"></span> Oui</div>
+                    <div class="checkbox-item"><span class="checkbox"></span> Non</div>
+                </div>
+            </div>
+            <div class="field-row">
+                <span class="field-label">Si oui, précisez :</span>
+                <span class="field-input"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 10 : ENGAGEMENTS ET SIGNATURE -->
+    <div class="section">
+        <div class="section-header">SECTION 10 - ENGAGEMENTS ET SIGNATURE <span class="required">*</span></div>
+        <div class="section-content">
+            <div class="small-text" style="margin-bottom: 3mm;">
+                En signant ce formulaire, je certifie sur l'honneur :
+            </div>
+
+            <div style="margin-left: 5mm; margin-bottom: 3mm;">
+                <div class="checkbox-item" style="margin-bottom: 2mm;">
+                    <span class="checkbox checkbox-large"></span>
+                    <span>L'exactitude des informations fournies dans ce formulaire <span class="required">*</span></span>
+                </div>
+                <div class="checkbox-item" style="margin-bottom: 2mm;">
+                    <span class="checkbox checkbox-large"></span>
+                    <span>Avoir pris connaissance du règlement intérieur de l'organisme <span class="required">*</span></span>
+                </div>
+                <div class="checkbox-item" style="margin-bottom: 2mm;">
+                    <span class="checkbox checkbox-large"></span>
+                    <span>Accepter les conditions générales de vente et le programme de formation <span class="required">*</span></span>
+                </div>
+                <div class="checkbox-item" style="margin-bottom: 2mm;">
+                    <span class="checkbox checkbox-large"></span>
+                    <span>Autoriser l'organisme à me contacter par les moyens indiqués</span>
+                </div>
+                <div class="checkbox-item" style="margin-bottom: 2mm;">
+                    <span class="checkbox checkbox-large"></span>
+                    <span>Accepter de recevoir des informations sur d'autres formations (facultatif)</span>
+                </div>
+            </div>
+
+            <div class="two-columns" style="margin-top: 5mm;">
+                <div>
+                    <div class="field-row">
+                        <span class="field-label">Fait à <span class="required">*</span></span>
+                        <span class="field-input"></span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">Le <span class="required">*</span></span>
+                        <div class="date-field">
+                            <span class="date-box"></span><span class="date-box"></span>
+                            <span>/</span>
+                            <span class="date-box"></span><span class="date-box"></span>
+                            <span>/</span>
+                            <span class="date-box"></span><span class="date-box"></span><span class="date-box"></span><span class="date-box"></span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="field-label">Signature du demandeur <span class="required">*</span></div>
+                    <div class="signature-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CADRE RÉSERVÉ À L'ADMINISTRATION -->
+    <div class="cadre-reserve">
+        <div class="cadre-reserve-title">CADRE RÉSERVÉ À L'ADMINISTRATION - NE PAS REMPLIR</div>
+        <div class="two-columns">
+            <div>
+                <div class="field-row">
+                    <span class="field-label">N° de dossier :</span>
+                    <span class="field-input"></span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Date de réception :</span>
+                    <span class="field-input"></span>
+                </div>
+            </div>
+            <div>
+                <div class="field-row">
+                    <span class="field-label">Dossier :</span>
+                    <div class="inline-checkboxes">
+                        <div class="checkbox-item"><span class="checkbox"></span> Complet</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> Incomplet</div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Décision :</span>
+                    <div class="inline-checkboxes">
+                        <div class="checkbox-item"><span class="checkbox"></span> Accepté</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> Refusé</div>
+                        <div class="checkbox-item"><span class="checkbox"></span> En attente</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <div class="two-columns">
+            <div>
+                DEMO-2024-01 | Version 1.0 | Page 1/1<br>
+                Document généré pour démonstration uniquement
+            </div>
+            <div style="text-align: right;">
+                Conformément au RGPD, vous disposez d'un droit d'accès, de rectification<br>
+                et de suppression des données vous concernant.
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "document_types": [
+    "passport",
+    "national_id_card",
+    "drivers_license",
+    "utility_bill",
+    "bank_statement",
+    "iban_document"
+  ],
+  "business_rules": {
+    "justificatif_max_age_days": 90,
+    "iban_validation_enabled": true
+  }
+}
