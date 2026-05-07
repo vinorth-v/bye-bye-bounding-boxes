@@ -44,9 +44,7 @@ class Configuration:
         """Région Google Cloud."""
         value = os.getenv("VAR_LLM_REGION", os.getenv("GCP_LOCATION", ""))
         if not value:
-            raise ValueError(
-                "Variable d'environnement manquante : VAR_LLM_REGION ou GCP_LOCATION"
-            )
+            raise ValueError("Variable d'environnement manquante : VAR_LLM_REGION ou GCP_LOCATION")
         return value
 
     @property

@@ -10,13 +10,15 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class TypeDocument(str, Enum):
-    """Types de documents d'identité acceptés."""
+    """Types de documents acceptés."""
 
     CARTE_IDENTITE = "carte_identite"
     PASSEPORT = "passeport"
     PERMIS_CONDUIRE = "permis_conduire"
     JUSTIFICATIF_DOMICILE = "justificatif_domicile"
     RIB = "rib"
+    # Nouveaux types pour la démo élargie
+    FORMULAIRE_INSCRIPTION = "formulaire_inscription"
 
 
 class Sexe(str, Enum):
@@ -384,7 +386,7 @@ class ClassificationDocument(BaseModel):
 
 # Résultat d'extraction
 class ResultatExtractionKYC(BaseModel):
-    """Résultat de l'extraction d'un document KYC."""
+    """Résultat de l'extraction d'un document (KYC ou autre)."""
 
     classification: Optional[ClassificationDocument] = Field(
         None, description="Résultat de la classification"
@@ -393,6 +395,7 @@ class ResultatExtractionKYC(BaseModel):
     regles_metier_validees: bool = Field(
         False, description="Les règles métier sont-elles validées ?"
     )
+    # Documents KYC
     carte_identite: Optional[CarteIdentite] = Field(None, description="Données de carte d'identité")
     passeport: Optional[Passeport] = Field(None, description="Données de passeport")
     permis_conduire: Optional[PermisConduire] = Field(
@@ -402,5 +405,15 @@ class ResultatExtractionKYC(BaseModel):
         None, description="Données de justificatif de domicile"
     )
     rib: Optional[RIB] = Field(None, description="Données de RIB/IBAN")
+    # Nouveaux types de documents
+    formulaire_inscription: Optional["FormulaireInscription"] = Field(
+        None, description="Données du formulaire d'inscription"
+    )
     erreurs: list[str] = Field(default_factory=list, description="Messages d'erreur")
     avertissements: list[str] = Field(default_factory=list, description="Messages d'avertissement")
+
+
+# Import différé pour éviter les imports circulaires
+from chains.schemas.formulaire_schemas import FormulaireInscription  # noqa: E402, F401
+
+ResultatExtractionKYC.model_rebuild()

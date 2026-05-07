@@ -5,7 +5,6 @@ Utilise Vertex AI Gemini avec extraction structurée via Pydantic.
 """
 
 import json
-import time
 from pathlib import Path
 
 import vertexai
@@ -15,6 +14,7 @@ from chains.configuration import Configuration
 from chains.prompts import (
     PROMPT_CLASSIFICATION,
     PROMPT_EXTRACTION_CNI,
+    PROMPT_EXTRACTION_FORMULAIRE,
     PROMPT_EXTRACTION_JUSTIFICATIF,
     PROMPT_EXTRACTION_PASSEPORT,
     PROMPT_EXTRACTION_PERMIS,
@@ -24,6 +24,7 @@ from chains.schemas import (
     RIB,
     CarteIdentite,
     ClassificationDocument,
+    FormulaireInscription,
     JustificatifDomicile,
     Passeport,
     PermisConduire,
@@ -325,6 +326,37 @@ class KYCDocumentChain:
             result_json = result_json[0]
         return RIB(**result_json), token_usage
 
+    def extract_formulaire(
+        self, image_path: str | Path
+    ) -> tuple[FormulaireInscription, dict | None]:
+        """
+        Extrait les données d'un formulaire d'inscription.
+
+        C'est LE CLIMAX DE LA DÉMO: ~120 cases à cocher détectées visuellement!
+
+        Args:
+            image_path: Chemin vers l'image du formulaire
+
+        Returns:
+            Tuple (Données structurées du formulaire, token_usage)
+        """
+        image_part = self._load_image(image_path)
+
+        response = self.model.generate_content(
+            [PROMPT_EXTRACTION_FORMULAIRE, image_part],
+            generation_config=self.generation_config,
+        )
+
+        # Extraire les tokens
+        token_usage = self._extract_token_usage(response)
+        if token_usage:
+            self._log_token_usage("Extraction Formulaire", token_usage)
+
+        result_json = json.loads(response.text)
+        if isinstance(result_json, list):
+            result_json = result_json[0]
+        return FormulaireInscription(**result_json), token_usage
+
     def process_document(self, image_path: str | Path) -> ResultatExtractionKYC:
         """
         Pipeline complet: classification + extraction + validation.
@@ -350,9 +382,7 @@ class KYCDocumentChain:
         try:
             # 1. Classification (RAD - Reconnaissance Automatique de Documents)
             print(f"🔍 Classification du document: {image_path}")
-            start_rad = time.time()
             classification, token_usage_classification = self.classify_document(image_path)
-            time_rad = time.time() - start_rad
             confiance_str = (
                 f" (confiance: {classification.confiance:.2%})"
                 if classification.confiance is not None
@@ -368,7 +398,6 @@ class KYCDocumentChain:
 
             # 2. Extraction selon le type (LAD - Lecture Automatique de Documents)
             print("📄 Extraction des données...")
-            start_lad = time.time()
             extraction_result = None
             token_usage_extraction = None
 
@@ -382,8 +411,8 @@ class KYCDocumentChain:
                 extraction_result, token_usage_extraction = self.extract_justificatif(image_path)
             elif classification.type_detecte == TypeDocument.RIB:
                 extraction_result, token_usage_extraction = self.extract_rib(image_path)
-
-            time_lad = time.time() - start_lad
+            elif classification.type_detecte == TypeDocument.FORMULAIRE_INSCRIPTION:
+                extraction_result, token_usage_extraction = self.extract_formulaire(image_path)
 
             # Accumuler les tokens d'extraction
             if token_usage_extraction:
@@ -400,12 +429,10 @@ class KYCDocumentChain:
                 ) * self.config.INPUT_TOKEN_PRICE_PER_MILLION + (
                     total_tokens_usage["output_tokens"] / 1_000_000
                 ) * self.config.OUTPUT_TOKEN_PRICE_PER_MILLION
-                total_time = time_rad + time_lad
                 print(
                     f"   📊 Total tokens: {total_tokens_usage['total_tokens']} | "
                     f"Coût total: ${total_cost:.6f}"
                 )
-                # print(f"   ⏱️  Temps total (RAD + LAD): {total_time:.2f}s")
 
             # 3. Construction du résultat
             result = ResultatExtractionKYC(
@@ -427,6 +454,8 @@ class KYCDocumentChain:
                 result.justificatif_domicile = extraction_result
             elif classification.type_detecte == TypeDocument.RIB:
                 result.rib = extraction_result
+            elif classification.type_detecte == TypeDocument.FORMULAIRE_INSCRIPTION:
+                result.formulaire_inscription = extraction_result
 
             print("✅ Traitement terminé avec succès\n")
             return result

@@ -15,11 +15,11 @@
         },
         {
             "name": "ANTHROPIC_DEFAULT_SONNET_MODEL",
-            "value": "claude-sonnet-4-5"
+            "value": "claude-sonnet-4-6"
         },
         {
             "name": "ANTHROPIC_DEFAULT_OPUS_MODEL",
-            "value": "claude-opus-4-5"
+            "value": "claude-opus-4-7"
         },
         {
             "name": "ANTHROPIC_DEFAULT_HAIKU_MODEL",

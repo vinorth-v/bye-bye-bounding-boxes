@@ -93,6 +93,11 @@ edf:
 impots:
     PYTHONPATH=src uv run python src/main.py examples/jdom_impots.pdf
 
+# 📋 Traite le formulaire d'inscription (CLIMAX de la démo - ~120 cases!)
+[group('demo')]
+formulaire:
+    PYTHONPATH=src uv run python src/main.py examples/formulaire_inscription.pdf
+
 # 📂 Traite tous les documents du dossier examples/
 [group('demo')]
 dossier:

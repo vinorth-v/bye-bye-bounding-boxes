@@ -1,5 +1,8 @@
 """__init__.py pour le module schemas."""
 
+from chains.schemas.formulaire_schemas import (
+    FormulaireInscription,
+)
 from chains.schemas.kyc_schemas import (
     RIB,
     CarteIdentite,
@@ -18,6 +21,7 @@ __all__ = [
     "CarteIdentite",
     "ClassificationDocument",
     "DossierKYC",
+    "FormulaireInscription",
     "JustificatifDomicile",
     "Passeport",
     "PermisConduire",

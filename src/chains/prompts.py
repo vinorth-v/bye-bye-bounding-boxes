@@ -1,5 +1,5 @@
 """
-Prompts pour la classification et l'extraction de documents KYC.
+Prompts pour la classification et l'extraction de documents.
 
 La magie de l'approche LLM: tout tient dans les prompts!
 Avant fallait des milliers de lignes de code + modèles deep learning.
@@ -9,14 +9,19 @@ Avant fallait des milliers de lignes de code + modèles deep learning.
 # Prompt de classification
 # =============================================================================
 
-PROMPT_CLASSIFICATION = """Tu es un système expert de classification de documents KYC (Know Your Customer) bancaires.
+PROMPT_CLASSIFICATION = """Tu es un système expert de classification de documents.
 
 Analyse l'image du document fourni et détermine son type parmi les catégories suivantes:
+
+DOCUMENTS D'IDENTITÉ (KYC):
 - carte_identite: Carte Nationale d'Identité française
 - passeport: Passeport français
 - permis_conduire: Permis de conduire français (format carte européenne)
-- justificatif_domicile: Facture (électricité, gaz, eau, internet, téléphone), quittance de loyer, taxe d'habitation, attestation d'assurance habitation
+- justificatif_domicile: Facture (électricité, gaz, eau, internet, téléphone), quittance de loyer, taxe d'habitation
 - rib: Relevé d'Identité Bancaire avec IBAN et BIC
+
+FORMULAIRES:
+- formulaire_inscription: Formulaire administratif avec de nombreuses cases à cocher, sections numérotées, demande d'inscription à une formation ou service
 
 Indices pour identifier le type:
 - CNI: Format carte plastique, mentions "RÉPUBLIQUE FRANÇAISE", "CARTE NATIONALE D'IDENTITÉ", photo, numéro à 12 chiffres
@@ -24,9 +29,10 @@ Indices pour identifier le type:
 - Permis de conduire: Format carte rose, logo européen, mentions des catégories (A, B, etc.), cases cochées
 - Justificatif domicile: Facture de fournisseur (EDF, Orange, etc.), adresse client, montant, date récente
 - RIB: IBAN commençant par FR, BIC/SWIFT, codes banque/guichet/compte, logo bancaire
+- Formulaire inscription: Document structuré en SECTIONS numérotées, nombreuses cases à cocher (□), champs à remplir, titre type "DEMANDE D'INSCRIPTION", numéro de formulaire (ex: DEMO-2026-05)
 
 Réponds en JSON avec:
-- type_detecte: le type identifié
+- type_detecte: le type identifié (parmi: carte_identite, passeport, permis_conduire, justificatif_domicile, rib, formulaire_inscription)
 - confiance: score de 0 à 1
 - raison: explication des indices visuels et textuels qui t'ont permis d'identifier ce type
 
@@ -257,3 +263,101 @@ Pour chaque règle, indique:
 - La sévérité (bloquant/avertissement)
 
 Fournis une conclusion claire: DOSSIER ACCEPTÉ ou DOSSIER REJETÉ avec les raisons."""
+
+
+# =============================================================================
+# Prompt d'extraction pour formulaire d'inscription
+# =============================================================================
+
+PROMPT_EXTRACTION_FORMULAIRE = """Tu es un système d'extraction de données de formulaires administratifs complexes.
+
+VOICI LE CLIMAX DE LA DÉMO: ~120 CASES À COCHER détectées visuellement!
+
+Ce formulaire "DEMANDE D'INSCRIPTION" comporte 10 sections avec de nombreuses cases à cocher.
+Ta mission: identifier TOUTES les cases cochées et extraire TOUTES les informations remplies.
+
+STRUCTURE DU FORMULAIRE:
+
+SECTION 1 - ÉTAT CIVIL:
+- civilite: Case cochée parmi [M., Mme, Autre]
+- nom_naissance: Nom de naissance écrit
+- nom_usage: Nom d'usage si rempli
+- prenoms: Prénom(s) écrits
+- date_naissance: Date au format YYYY-MM-DD (cases individuelles JJ/MM/AAAA)
+- lieu_naissance: Lieu écrit
+- nationalite: Case cochée parmi [Française, Union Européenne, Hors UE]
+- nationalite_autre: Précision si Hors UE
+- numero_securite_sociale: 13 chiffres + 2 clé
+
+SECTION 2 - COORDONNÉES:
+- adresse, complement_adresse, code_postal, ville
+- telephone_fixe, telephone_mobile, email
+- mode_contact_prefere: Case cochée parmi [Courrier postal, Email, SMS, Téléphone]
+
+SECTION 3 - SITUATION PROFESSIONNELLE:
+- statut: Case cochée parmi [Salarié(e) CDI, Salarié(e) CDD, Intérimaire, Fonctionnaire, Indépendant, Chef d'entreprise, Demandeur d'emploi, Étudiant(e), Retraité(e), Sans activité]
+- employeur, fonction, secteur_activite
+- categorie_sociopro: Case cochée parmi [Cadre supérieur, Cadre, Technicien, Employé, Ouvrier]
+- experience: Case cochée parmi [0-2 ans, 3-5 ans, 6-10 ans, 10+ ans]
+
+SECTION 4 - NIVEAU D'ÉTUDES:
+- dernier_diplome: Case cochée parmi [Sans diplôme, CAP/BEP, Bac, Bac+2, Bac+3, Bac+4, Bac+5, Doctorat]
+- intitule_diplome, annee_obtention, etablissement
+
+SECTION 5 - FORMATION SOUHAITÉE:
+- domaines: LISTE des cases cochées parmi [IA/ML, Dev Web/Mobile, Cloud, Data Science, Cybersécurité, DevOps, Gestion projet, Architecture, Autre]
+- domaine_autre_precision: Si "Autre" coché
+- niveau_vise: Case cochée parmi [Initiation, Intermédiaire, Avancé, Expert]
+- modalite: Case cochée parmi [Présentiel, Distanciel synchrone, E-learning, Hybride]
+- disponibilite: Case cochée parmi [Temps plein, Temps partiel, Week-ends, À définir]
+- date_debut: Case cochée parmi [Dès que possible, Septembre 2026, Janvier 2027]
+
+SECTION 6 - FINANCEMENT:
+- types_financement: LISTE des cases cochées parmi [CPF, Plan entreprise, Pôle Emploi, OPCO, Transition pro, Autofinancement, Région, Autre]
+- financement_autre_precision: Si "Autre" coché
+- statut_accord: Case cochée parmi [Accord obtenu, En cours, À initier]
+
+SECTION 7 - AUTO-ÉVALUATION (TABLEAU 7×6):
+Pour chaque compétence, indique le niveau coché (1, 2, 3, 4, 5, ou N/A):
+- programmation, bases_de_donnees, cloud, machine_learning, devops, gestion_projet, anglais_technique
+
+SECTION 8 - MOTIVATIONS:
+- objectifs: LISTE des cases cochées parmi [Reconversion, Montée compétences, Management, Spécialisation, Certification, Création entreprise, Retour emploi]
+- projet_professionnel: Texte libre écrit dans la zone
+
+SECTION 9 - SITUATION PARTICULIÈRE:
+- situations: LISTE des cases cochées parmi [RQTH, Obligation emploi, Demandeur longue durée, RSA/ASS, Parent isolé, Aucune]
+- besoin_amenagements: Case Oui ou Non cochée
+- amenagements_details: Précision si Oui
+
+SECTION 10 - ENGAGEMENTS ET SIGNATURE:
+- exactitude_informations: Case cochée (obligatoire)
+- reglement_interieur: Case cochée (obligatoire)
+- conditions_generales: Case cochée (obligatoire)
+- autorisation_contact: Case cochée
+- accepte_autres_formations: Case cochée (facultatif)
+- lieu_signature: "Fait à" écrit
+- date_signature: Date au format YYYY-MM-DD
+- signature_presente: true si une signature manuscrite est visible
+
+INSTRUCTIONS IMPORTANTES:
+1. Regarde VISUELLEMENT chaque case: cochée (✓, X, remplie) ou vide
+2. Pour les champs à choix multiples (domaines, financements, objectifs, situations), retourne une LISTE
+3. Pour le tableau des compétences, identifie la case cochée sur chaque ligne
+4. Lis le texte manuscrit dans les zones de texte libre
+5. Les dates peuvent être dans des cases individuelles (JJ/MM/AAAA), convertis en YYYY-MM-DD
+
+Réponds en JSON structuré avec les sections imbriquées:
+{
+    "numero_formulaire": "DEMO-2026-05",
+    "etat_civil": { ... },
+    "coordonnees": { ... },
+    "situation_professionnelle": { ... },
+    "niveau_etudes": { ... },
+    "formation_souhaitee": { ... },
+    "financement": { ... },
+    "competences": { ... },
+    "motivations": { ... },
+    "situation_particuliere": { ... },
+    "engagements": { ... }
+}"""

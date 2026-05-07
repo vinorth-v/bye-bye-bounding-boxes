@@ -119,6 +119,119 @@ def demo_document_unique(image_path: str):
                     print("   ⭐ L'IBAN a été validé avec l'algorithme modulo 97!")
                 else:
                     print("   Checksum IBAN: ✗ Invalide")
+
+        elif result.formulaire_inscription:
+            form = result.formulaire_inscription
+            print("📋 FORMULAIRE D'INSCRIPTION")
+            print(f"   N° formulaire: {form.numero_formulaire}")
+            print()
+
+            # Statistiques impressionnantes pour la démo
+            nb_cases = form.nombre_cases_cochees
+            print(f"   ⭐ CASES COCHÉES DÉTECTÉES: {nb_cases}")
+            print("      Le LLM a analysé visuellement ~120 cases possibles!")
+            print()
+
+            # Section 1: État civil
+            ec = form.etat_civil
+            if ec.civilite or ec.nom_naissance:
+                print("   👤 ÉTAT CIVIL")
+                if ec.civilite:
+                    print(f"      Civilité: {ec.civilite.value}")
+                if ec.nom_naissance:
+                    print(f"      Nom: {ec.nom_naissance}")
+                if ec.prenoms:
+                    print(f"      Prénom(s): {ec.prenoms}")
+                if ec.date_naissance:
+                    print(f"      Né(e) le: {ec.date_naissance}")
+                if ec.nationalite:
+                    print(f"      Nationalité: {ec.nationalite.value}")
+
+            # Section 3: Situation pro
+            sp = form.situation_professionnelle
+            if sp.statut:
+                print()
+                print("   💼 SITUATION PROFESSIONNELLE")
+                print(f"      Statut: {sp.statut.value}")
+                if sp.employeur:
+                    print(f"      Employeur: {sp.employeur}")
+                if sp.experience:
+                    print(f"      Expérience: {sp.experience.value}")
+
+            # Section 5: Formation souhaitée
+            fs = form.formation_souhaitee
+            if fs.domaines:
+                print()
+                print("   🎓 FORMATION SOUHAITÉE")
+                print(f"      Domaines: {', '.join(d.value for d in fs.domaines)}")
+                if fs.niveau_vise:
+                    print(f"      Niveau visé: {fs.niveau_vise.value}")
+                if fs.modalite:
+                    print(f"      Modalité: {fs.modalite.value}")
+
+            # Section 6: Financement
+            fin = form.financement
+            if fin.types_financement:
+                print()
+                print("   💰 FINANCEMENT")
+                print(f"      Types: {', '.join(f.value for f in fin.types_financement)}")
+                if fin.statut_accord:
+                    print(f"      Statut: {fin.statut_accord.value}")
+
+            # Section 7: Compétences (tableau)
+            comp = form.competences
+            competences_remplies = []
+            if comp.programmation:
+                competences_remplies.append(f"Programmation: {comp.programmation.value}")
+            if comp.bases_de_donnees:
+                competences_remplies.append(f"BDD: {comp.bases_de_donnees.value}")
+            if comp.cloud:
+                competences_remplies.append(f"Cloud: {comp.cloud.value}")
+            if comp.machine_learning:
+                competences_remplies.append(f"ML/IA: {comp.machine_learning.value}")
+            if comp.devops:
+                competences_remplies.append(f"DevOps: {comp.devops.value}")
+            if competences_remplies:
+                print()
+                print("   📊 AUTO-ÉVALUATION (tableau 7×6 cases)")
+                for c in competences_remplies:
+                    print(f"      {c}")
+
+            # Section 10: Engagements
+            eng = form.engagements
+            engagements_coches = sum(
+                [
+                    eng.exactitude_informations,
+                    eng.reglement_interieur,
+                    eng.conditions_generales,
+                    eng.autorisation_contact,
+                    eng.accepte_autres_formations,
+                ]
+            )
+            if engagements_coches > 0:
+                print()
+                print(f"   ✅ ENGAGEMENTS: {engagements_coches}/5 cases cochées")
+                if eng.signature_presente:
+                    print("   ✍️  Signature: PRÉSENTE")
+                if eng.date_signature:
+                    print(f"   📅 Date: {eng.date_signature}")
+
+            # Message final impressionnant
+            print()
+            print("   " + "=" * 50)
+            print("   🎯 POINT CLÉ DE LA DÉMO:")
+            print("      Avec du deep learning classique, il aurait fallu:")
+            print("      - Annoter ~120 cases × milliers de formulaires")
+            print("      - Entraîner un détecteur pour chaque case")
+            print("      - Classifier coché/non coché pour chacune")
+            print("      = Des MOIS de travail!")
+            print()
+            print("      Avec un LLM multimodal:")
+            print("      - 1 prompt bien écrit")
+            print("      - 1 schéma Pydantic")
+            print("      = Quelques HEURES de travail!")
+            print("   " + "=" * 50)
+
     else:
         print("\n❌ ÉCHEC DE L'EXTRACTION\n")
         if result.erreurs:
