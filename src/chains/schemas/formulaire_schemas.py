@@ -211,6 +211,16 @@ class EtatCivil(BaseModel):
     nationalite: Optional[Nationalite] = Field(None, description="Nationalité cochée")
     nationalite_autre: Optional[str] = Field(None, description="Précision si nationalité Hors UE")
 
+    @model_validator(mode="after")
+    def validate_nationalite_coherence(self) -> "EtatCivil":
+        """Valide la cohérence : si nationalité Hors UE → précision requise."""
+        if self.nationalite == Nationalite.HORS_UE:
+            if not self.nationalite_autre:
+                raise ValueError(
+                    "Si la nationalité est 'Hors UE', vous devez préciser laquelle"
+                )
+        return self
+
 
 class Coordonnees(BaseModel):
     """Section 2 : Coordonnées."""
@@ -398,21 +408,6 @@ class Engagements(BaseModel):
         None, description="Date de signature au format YYYY-MM-DD"
     )
     signature_presente: bool = Field(False, description="Une signature manuscrite est présente")
-
-    @model_validator(mode="after")
-    def validate_engagements_coherence(self) -> "Engagements":
-        """Valide la cohérence : si les cases d'engagement clés sont cochées, la signature doit être présente."""
-        if (
-            self.exactitude_informations
-            and self.reglement_interieur
-            and self.conditions_generales
-        ):
-            if not self.signature_presente:
-                raise ValueError(
-                    "Si les cases d'engagement (exactitude, règlement, conditions) sont cochées, "
-                    "une signature manuscrite doit être présente"
-                )
-        return self
 
 
 # =============================================================================
