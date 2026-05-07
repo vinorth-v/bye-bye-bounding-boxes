@@ -9,7 +9,7 @@ from datetime import date
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # =============================================================================
 # Enums pour les choix du formulaire
@@ -210,9 +210,6 @@ class EtatCivil(BaseModel):
     lieu_naissance: Optional[str] = Field(None, description="Lieu de naissance")
     nationalite: Optional[Nationalite] = Field(None, description="Nationalité cochée")
     nationalite_autre: Optional[str] = Field(None, description="Précision si nationalité Hors UE")
-    numero_securite_sociale: Optional[str] = Field(
-        None, description="Numéro de sécurité sociale (13 chiffres + 2 clé)"
-    )
 
 
 class Coordonnees(BaseModel):
@@ -228,6 +225,37 @@ class Coordonnees(BaseModel):
     mode_contact_prefere: Optional[ModeContact] = Field(
         None, description="Mode de contact préféré coché"
     )
+
+    @field_validator("code_postal")
+    @classmethod
+    def validate_code_postal(cls, v: Optional[str]) -> Optional[str]:
+        """Valide que le code postal français a 5 chiffres."""
+        if v is None:
+            return v
+        if len(v) != 5 or not v.isdigit():
+            raise ValueError("Code postal doit contenir exactement 5 chiffres")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        """Valide le format basique de l'email."""
+        if v is None:
+            return v
+        if "@" not in v or "." not in v:
+            raise ValueError("Email invalide (doit contenir @ et .)")
+        return v
+
+    @field_validator("telephone_mobile")
+    @classmethod
+    def validate_telephone_mobile(cls, v: Optional[str]) -> Optional[str]:
+        """Valide que le téléphone mobile français a 10 chiffres."""
+        if v is None:
+            return v
+        digits_only = "".join(c for c in v if c.isdigit())
+        if len(digits_only) != 10:
+            raise ValueError("Téléphone mobile doit contenir 10 chiffres")
+        return v
 
 
 class SituationProfessionnelle(BaseModel):
@@ -285,6 +313,15 @@ class Financement(BaseModel):
     statut_accord: Optional[StatutFinancement] = Field(
         None, description="Statut de l'accord de financement coché"
     )
+
+    @model_validator(mode="after")
+    def validate_financement_coherence(self) -> "Financement":
+        """Valide la cohérence : si types de financement remplis, statut_accord doit l'être aussi."""
+        if len(self.types_financement) > 0 and self.statut_accord is None:
+            raise ValueError(
+                "Si types de financement sont cochés, le statut de l'accord doit être renseigné"
+            )
+        return self
 
 
 class AutoEvaluationCompetences(BaseModel):
@@ -361,6 +398,21 @@ class Engagements(BaseModel):
         None, description="Date de signature au format YYYY-MM-DD"
     )
     signature_presente: bool = Field(False, description="Une signature manuscrite est présente")
+
+    @model_validator(mode="after")
+    def validate_engagements_coherence(self) -> "Engagements":
+        """Valide la cohérence : si les cases d'engagement clés sont cochées, la signature doit être présente."""
+        if (
+            self.exactitude_informations
+            and self.reglement_interieur
+            and self.conditions_generales
+        ):
+            if not self.signature_presente:
+                raise ValueError(
+                    "Si les cases d'engagement (exactitude, règlement, conditions) sont cochées, "
+                    "une signature manuscrite doit être présente"
+                )
+        return self
 
 
 # =============================================================================
