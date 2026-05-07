@@ -21,7 +21,7 @@ class Civilite(str, Enum):
 
     MONSIEUR = "M."
     MADAME = "Mme"
-    AUTRE = "Autre"
+    NON_PRECISE = "Ne souhaite pas répondre"
 
 
 class Nationalite(str, Enum):
@@ -200,7 +200,7 @@ class NiveauCompetence(str, Enum):
 class EtatCivil(BaseModel):
     """Section 1 : État civil du demandeur."""
 
-    civilite: Optional[Civilite] = Field(None, description="Civilité cochée (M., Mme, Autre)")
+    civilite: Optional[Civilite] = Field(None, description="Civilité cochée (M., Mme, Ne souhaite pas répondre)")
     nom_naissance: Optional[str] = Field(None, description="Nom de naissance")
     nom_usage: Optional[str] = Field(None, description="Nom d'usage si différent")
     prenoms: Optional[str] = Field(None, description="Prénom(s)")

@@ -25,6 +25,7 @@ test_results/
 
 # Google Cloud
 credentials.json
+.vscode
 
 # Lock files (régénérés par uv sync)
 uv.lock

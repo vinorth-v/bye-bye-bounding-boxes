@@ -279,7 +279,7 @@ Ta mission: identifier TOUTES les cases cochées et extraire TOUTES les informat
 STRUCTURE DU FORMULAIRE:
 
 SECTION 1 - ÉTAT CIVIL:
-- civilite: Case cochée parmi [M., Mme, Autre]
+- civilite: Case cochée parmi [M., Mme, Ne souhaite pas répondre]
 - nom_naissance: Nom de naissance écrit
 - nom_usage: Nom d'usage si rempli
 - prenoms: Prénom(s) écrits
