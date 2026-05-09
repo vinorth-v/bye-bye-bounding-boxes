@@ -11,6 +11,83 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+
+# =============================================================================
+# Helpers pour tolérer les variations du LLM
+# =============================================================================
+
+
+def _fuzzy_match_enum(value, enum_class):
+    """Tente de matcher une valeur abrégée du LLM vers la valeur exacte de l'enum.
+
+    Stratégie : match exact → match par début → match par inclusion (insensible à la casse).
+    """
+    if value is None:
+        return value
+
+    # Si c'est déjà une instance de l'enum, ok
+    if isinstance(value, enum_class):
+        return value
+
+    v = str(value).strip()
+
+    # Match exact
+    for member in enum_class:
+        if member.value == v:
+            return v
+
+    # Match insensible à la casse
+    v_lower = v.lower()
+    for member in enum_class:
+        if member.value.lower() == v_lower:
+            return member.value
+
+    # Match par début (ex: "À définir" → "À définir selon planning")
+    for member in enum_class:
+        if member.value.lower().startswith(v_lower):
+            return member.value
+
+    # Match par inclusion (ex: "CPF" → "CPF (Compte Personnel de Formation)")
+    for member in enum_class:
+        if v_lower in member.value.lower():
+            return member.value
+
+    # Match par nom de l'attribut enum (ex: "IA_ML" → "Intelligence Artificielle / Machine Learning")
+    for member in enum_class:
+        if member.name.lower() == v_lower.replace("/", "_").replace(" ", "_"):
+            return member.value
+
+    return value
+
+
+def _coerce_bool(value):
+    """Convertit Oui/Non/oui/non en bool."""
+    if value is None or isinstance(value, bool):
+        return value
+    v = str(value).strip().lower()
+    if v in ("oui", "yes", "true", "1", "vrai"):
+        return True
+    if v in ("non", "no", "false", "0", "faux"):
+        return False
+    return value
+
+
+def _coerce_niveau_competence(value):
+    """Convertit int en str pour NiveauCompetence (ex: 4 → '4')."""
+    if value is None:
+        return value
+    if isinstance(value, int):
+        return str(value)
+    return value
+
+
+def _coerce_enum_list(values, enum_class):
+    """Applique le fuzzy match sur chaque élément d'une liste d'enums."""
+    if not isinstance(values, list):
+        return values
+    return [_fuzzy_match_enum(v, enum_class) for v in values]
+
+
 # =============================================================================
 # Enums pour les choix du formulaire
 # =============================================================================
@@ -293,6 +370,11 @@ class NiveauEtudes(BaseModel):
     annee_obtention: Optional[int] = Field(None, description="Année d'obtention")
     etablissement: Optional[str] = Field(None, description="Établissement de formation")
 
+    @field_validator("dernier_diplome", mode="before")
+    @classmethod
+    def coerce_dernier_diplome(cls, v):
+        return _fuzzy_match_enum(v, NiveauDiplome)
+
 
 class FormationSouhaitee(BaseModel):
     """Section 5 : Formation souhaitée."""
@@ -309,6 +391,16 @@ class FormationSouhaitee(BaseModel):
     disponibilite: Optional[Disponibilite] = Field(None, description="Disponibilité cochée")
     date_debut: Optional[DateDebut] = Field(None, description="Date de début souhaitée cochée")
 
+    @field_validator("domaines", mode="before")
+    @classmethod
+    def coerce_domaines(cls, v):
+        return _coerce_enum_list(v, DomaineFormation)
+
+    @field_validator("disponibilite", mode="before")
+    @classmethod
+    def coerce_disponibilite(cls, v):
+        return _fuzzy_match_enum(v, Disponibilite)
+
 
 class Financement(BaseModel):
     """Section 6 : Mode de financement."""
@@ -324,12 +416,26 @@ class Financement(BaseModel):
         None, description="Statut de l'accord de financement coché"
     )
 
+    @field_validator("types_financement", mode="before")
+    @classmethod
+    def coerce_types_financement(cls, v):
+        return _coerce_enum_list(v, TypeFinancement)
+
+    @field_validator("statut_accord", mode="before")
+    @classmethod
+    def coerce_statut_accord(cls, v):
+        return _fuzzy_match_enum(v, StatutFinancement)
+
     @model_validator(mode="after")
     def validate_financement_coherence(self) -> "Financement":
-        """Valide la cohérence : si types de financement remplis, statut_accord doit l'être aussi."""
-        if len(self.types_financement) > 0 and self.statut_accord is None:
+        """Valide la cohérence : si financement ≠ autofinancement, statut_accord requis."""
+        types_necessitant_accord = [
+            t for t in self.types_financement if t != TypeFinancement.AUTOFINANCEMENT
+        ]
+        if len(types_necessitant_accord) > 0 and self.statut_accord is None:
             raise ValueError(
-                "Si types de financement sont cochés, le statut de l'accord doit être renseigné"
+                "Si un financement autre que 'Autofinancement personnel' est coché, "
+                "le statut de l'accord doit être renseigné"
             )
         return self
 
@@ -359,6 +465,15 @@ class AutoEvaluationCompetences(BaseModel):
         None, description="Niveau en Anglais technique"
     )
 
+    @field_validator(
+        "programmation", "bases_de_donnees", "cloud",
+        "machine_learning", "devops", "gestion_projet", "anglais_technique",
+        mode="before",
+    )
+    @classmethod
+    def coerce_niveau(cls, v):
+        return _coerce_niveau_competence(v)
+
 
 class Motivations(BaseModel):
     """Section 8 : Motivations et projet professionnel."""
@@ -370,6 +485,11 @@ class Motivations(BaseModel):
     projet_professionnel: Optional[str] = Field(
         None, description="Description du projet professionnel (zone de texte libre)"
     )
+
+    @field_validator("objectifs", mode="before")
+    @classmethod
+    def coerce_objectifs(cls, v):
+        return _coerce_enum_list(v, ObjectifFormation)
 
 
 class SituationParticuliereSection(BaseModel):
@@ -385,6 +505,11 @@ class SituationParticuliereSection(BaseModel):
     amenagements_details: Optional[str] = Field(
         None, description="Détails des aménagements si besoin"
     )
+
+    @field_validator("besoin_amenagements", mode="before")
+    @classmethod
+    def coerce_besoin_amenagements(cls, v):
+        return _coerce_bool(v)
 
 
 class Engagements(BaseModel):

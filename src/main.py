@@ -4,6 +4,7 @@ Point d'entrée principal du démonstrateur KYC.
 Exemple d'utilisation pour la conférence!
 """
 
+import re
 import sys
 
 from dotenv import load_dotenv
@@ -236,7 +237,58 @@ def demo_document_unique(image_path: str):
         print("\n❌ ÉCHEC DE L'EXTRACTION\n")
         if result.erreurs:
             for erreur in result.erreurs:
-                print(f"   - {erreur}")
+                _print_simplified_errors(erreur)
+
+
+def _print_simplified_errors(erreur: str):
+    """Affiche les erreurs de validation Pydantic de façon simplifiée."""
+    # Extraire le nombre d'erreurs
+    match = re.match(r"(\d+) validation errors? for (\w+)", erreur)
+    if not match:
+        print(f"   - {erreur}")
+        return
+
+    nb_errors, model_name = match.group(1), match.group(2)
+    print(f"   {nb_errors} erreurs de validation ({model_name}):\n")
+
+    # Parser chaque erreur individuelle
+    # Format: "champ\n  message [type=..., input_value=..., input_type=...]\n    For further..."
+    lines = erreur.split("\n")
+    i = 1  # Skip la première ligne (déjà affichée)
+    while i < len(lines):
+        line = lines[i].strip()
+        # Skip les lignes "For further information"
+        if line.startswith("For further information"):
+            i += 1
+            continue
+        # Ligne de champ (pas d'indentation ou indentation simple)
+        if line and not line.startswith("Input should") and not line.startswith("For "):
+            field = line
+            # Lire la ligne de message suivante
+            if i + 1 < len(lines):
+                msg_line = lines[i + 1].strip()
+                # Extraire input_value et les valeurs attendues
+                val_match = re.search(r"input_value=(.+?), input_type=(\w+)", msg_line)
+                recu = val_match.group(1) if val_match else "?"
+                type_recu = val_match.group(2) if val_match else "?"
+                # Identifier le type d'erreur et formater
+                if "bool" in msg_line:
+                    print(f"   {field}: reçu {recu} ({type_recu}) → attendu true/false (bool)")
+                else:
+                    expected_match = re.search(r"Input should be (.+?) \[type=", msg_line)
+                    if expected_match and val_match:
+                        attendu_raw = expected_match.group(1)
+                        options = re.findall(r"'[^']*'", attendu_raw)
+                        if len(options) <= 3:
+                            attendu = " | ".join(options)
+                        else:
+                            attendu = " | ".join(options[:2]) + f" | ... ({len(options)} options)"
+                        print(f"   {field}: reçu {recu} ({type_recu}) → attendu {attendu}")
+                    else:
+                        print(f"   {field}: {msg_line}")
+                i += 2
+                continue
+        i += 1
 
 
 def demo_dossier_complet(folder_path: str):

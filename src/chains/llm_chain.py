@@ -55,8 +55,10 @@ class KYCDocumentChain:
         # Initialiser Vertex AI
         vertexai.init(project=self.config.project_id, location=self.config.location)
 
-        # Créer le modèle
-        self.model = GenerativeModel(self.config.model)
+        # Créer les modèles: Flash pour RAD (classification), Pro pour LAD (extraction)
+        self.model_rad = GenerativeModel(self.config.model_rad)
+        self.model_lad = GenerativeModel(self.config.model_lad)
+        print(f"   🧠 RAD: {self.config.model_rad} | LAD: {self.config.model_lad}")
 
         # Configuration de génération
         self.generation_config = GenerationConfig(
@@ -169,7 +171,7 @@ class KYCDocumentChain:
         """
         image_part = self._load_image(image_path)
 
-        response = self.model.generate_content(
+        response = self.model_rad.generate_content(
             [PROMPT_CLASSIFICATION, image_part],
             generation_config=self.generation_config,
         )
@@ -197,7 +199,7 @@ class KYCDocumentChain:
         """
         image_part = self._load_image(image_path)
 
-        response = self.model.generate_content(
+        response = self.model_lad.generate_content(
             [PROMPT_EXTRACTION_CNI, image_part],
             generation_config=self.generation_config,
         )
@@ -224,7 +226,7 @@ class KYCDocumentChain:
         """
         image_part = self._load_image(image_path)
 
-        response = self.model.generate_content(
+        response = self.model_lad.generate_content(
             [PROMPT_EXTRACTION_PASSEPORT, image_part],
             generation_config=self.generation_config,
         )
@@ -253,7 +255,7 @@ class KYCDocumentChain:
         """
         image_part = self._load_image(image_path)
 
-        response = self.model.generate_content(
+        response = self.model_lad.generate_content(
             [PROMPT_EXTRACTION_PERMIS, image_part],
             generation_config=self.generation_config,
         )
@@ -282,7 +284,7 @@ class KYCDocumentChain:
         """
         image_part = self._load_image(image_path)
 
-        response = self.model.generate_content(
+        response = self.model_lad.generate_content(
             [PROMPT_EXTRACTION_JUSTIFICATIF, image_part],
             generation_config=self.generation_config,
         )
@@ -311,7 +313,7 @@ class KYCDocumentChain:
         """
         image_part = self._load_image(image_path)
 
-        response = self.model.generate_content(
+        response = self.model_lad.generate_content(
             [PROMPT_EXTRACTION_RIB, image_part],
             generation_config=self.generation_config,
         )
@@ -342,7 +344,7 @@ class KYCDocumentChain:
         """
         image_part = self._load_image(image_path)
 
-        response = self.model.generate_content(
+        response = self.model_lad.generate_content(
             [PROMPT_EXTRACTION_FORMULAIRE, image_part],
             generation_config=self.generation_config,
         )
@@ -355,6 +357,13 @@ class KYCDocumentChain:
         result_json = json.loads(response.text)
         if isinstance(result_json, list):
             result_json = result_json[0]
+
+        # Dump JSON brut pour debug
+        debug_path = Path("debug_last_response.json")
+        with open(debug_path, "w", encoding="utf-8") as f:
+            json.dump(result_json, f, ensure_ascii=False, indent=2)
+        print(f"   📝 JSON brut sauvegardé dans: {debug_path}")
+
         return FormulaireInscription(**result_json), token_usage
 
     def process_document(self, image_path: str | Path) -> ResultatExtractionKYC:

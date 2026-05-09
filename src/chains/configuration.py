@@ -48,9 +48,20 @@ class Configuration:
         return value
 
     @property
-    def model(self) -> str:
-        """Modèle Vertex AI à utiliser."""
-        return os.getenv("VAR_LLM_MODELE", os.getenv("MODEL_NAME", "gemini-1.5-flash-002"))
+    def model_rad(self) -> str:
+        """Modèle Vertex AI pour la classification (RAD)."""
+        return os.getenv(
+            "VAR_LLM_MODELE_RAD",
+            os.getenv("MODEL_NAME_RAD", "gemini-2.5-flash"),
+        )
+
+    @property
+    def model_lad(self) -> str:
+        """Modèle Vertex AI pour l'extraction (LAD)."""
+        return os.getenv(
+            "VAR_LLM_MODELE_LAD",
+            os.getenv("MODEL_NAME_LAD", "gemini-2.5-pro"),
+        )
 
     @property
     def temperature(self) -> float:

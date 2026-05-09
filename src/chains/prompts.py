@@ -269,95 +269,349 @@ Fournis une conclusion claire: DOSSIER ACCEPTÉ ou DOSSIER REJETÉ avec les rais
 # Prompt d'extraction pour formulaire d'inscription
 # =============================================================================
 
-PROMPT_EXTRACTION_FORMULAIRE = """Tu es un système d'extraction de données de formulaires administratifs complexes.
+PROMPT_EXTRACTION_FORMULAIRE = """Tu es un expert en lecture automatique de documents (LAD) analysant un formulaire
+"DEMANDE D'INSCRIPTION - Formation professionnelle continue" (réf. DEMO-2026-05).
 
-VOICI LE CLIMAX DE LA DÉMO: ~120 CASES À COCHER détectées visuellement!
+Ce formulaire comporte 10 SECTIONS numérotées avec ~120 cases à cocher.
+Tu connais la position EXACTE de chaque case. Suis les instructions section par section.
 
-Ce formulaire "DEMANDE D'INSCRIPTION" comporte 10 sections avec de nombreuses cases à cocher.
-Ta mission: identifier TOUTES les cases cochées et extraire TOUTES les informations remplies.
+═══════════════════════════════════════════════════════════════════
+RÈGLES DE DÉTECTION DES CASES À COCHER
+═══════════════════════════════════════════════════════════════════
 
-STRUCTURE DU FORMULAIRE:
+Une case est COCHÉE si elle contient N'IMPORTE QUELLE marque :
+- Marques nettes : ☑ X ☒ (coche, X, case remplie)
+- Marques fines : ✓ (coche fine, même manuscrite)
+- Traits : ━ │ ╱ ╲ (horizontal, vertical, diagonal - même incomplet)
+- Petites marques : · (point, petit trait)
+- Marques manuscrites : Crayon (gris/léger), stylo (pâle), coches partielles, gribouillis
 
-SECTION 1 - ÉTAT CIVIL:
-- civilite: Case cochée parmi [M., Mme, Ne souhaite pas répondre]
-- nom_naissance: Nom de naissance écrit
-- nom_usage: Nom d'usage si rempli
-- prenoms: Prénom(s) écrits
-- date_naissance: Date au format YYYY-MM-DD (cases individuelles JJ/MM/AAAA)
-- lieu_naissance: Lieu écrit
-- nationalite: Case cochée parmi [Française, Union Européenne, Hors UE]
-- nationalite_autre: Précision si Hors UE
-- numero_securite_sociale: 13 chiffres + 2 clé
+IMPORTANT : Les formulaires manuscrits ont souvent des marques PLUS LÉGÈRES que les croix imprimées.
+Une case peut avoir un X gras tandis qu'une autre a un ✓ fin - les DEUX sont COCHÉES.
 
-SECTION 2 - COORDONNÉES:
-- adresse, complement_adresse, code_postal, ville
-- telephone_fixe, telephone_mobile, email
-- mode_contact_prefere: Case cochée parmi [Courrier postal, Email, SMS, Téléphone]
+Une case est NON COCHÉE SEULEMENT SI :
+- Contour vide sans rien à l'intérieur
+- Intérieur blanc/vierge avec uniquement la bordure visible
 
-SECTION 3 - SITUATION PROFESSIONNELLE:
-- statut: Case cochée parmi [Salarié(e) CDI, Salarié(e) CDD, Intérimaire, Fonctionnaire, Indépendant, Chef d'entreprise, Demandeur d'emploi, Étudiant(e), Retraité(e), Sans activité]
-- employeur, fonction, secteur_activite
-- categorie_sociopro: Case cochée parmi [Cadre supérieur, Cadre, Technicien, Employé, Ouvrier]
-- experience: Case cochée parmi [0-2 ans, 3-5 ans, 6-10 ans, 10+ ans]
+RÈGLE DE DÉCISION : En cas de doute → Marquer comme COCHÉE (mieux vaut détecter que manquer).
 
-SECTION 4 - NIVEAU D'ÉTUDES:
-- dernier_diplome: Case cochée parmi [Sans diplôme, CAP/BEP, Bac, Bac+2, Bac+3, Bac+4, Bac+5, Doctorat]
-- intitule_diplome, annee_obtention, etablissement
+═══════════════════════════════════════════════════════════════════
+EXTRACTION SECTION PAR SECTION - SUIVRE CET ORDRE EXACT
+═══════════════════════════════════════════════════════════════════
 
-SECTION 5 - FORMATION SOUHAITÉE:
-- domaines: LISTE des cases cochées parmi [IA/ML, Dev Web/Mobile, Cloud, Data Science, Cybersécurité, DevOps, Gestion projet, Architecture, Autre]
-- domaine_autre_precision: Si "Autre" coché
-- niveau_vise: Case cochée parmi [Initiation, Intermédiaire, Avancé, Expert]
-- modalite: Case cochée parmi [Présentiel, Distanciel synchrone, E-learning, Hybride]
-- disponibilite: Case cochée parmi [Temps plein, Temps partiel, Week-ends, À définir]
-- date_debut: Case cochée parmi [Dès que possible, Septembre 2026, Janvier 2027]
+--- SECTION 1 : ÉTAT CIVIL DU DEMANDEUR ---
+Titre encadré gris : "SECTION 1 - ÉTAT CIVIL DU DEMANDEUR *"
 
-SECTION 6 - FINANCEMENT:
-- types_financement: LISTE des cases cochées parmi [CPF, Plan entreprise, Pôle Emploi, OPCO, Transition pro, Autofinancement, Région, Autre]
-- financement_autre_precision: Si "Autre" coché
-- statut_accord: Case cochée parmi [Accord obtenu, En cours, À initier]
+1a. CIVILITÉ (ligne horizontale de 3 cases) :
+    Layout : [☐] M.    [☐] Mme    [☐] Ne souhaite pas répondre
+    → Examiner les 3 cases de gauche à droite. UNE SEULE doit être cochée.
+    → Valeurs : "M.", "Mme", "Ne souhaite pas répondre"
 
-SECTION 7 - AUTO-ÉVALUATION (TABLEAU 7×6):
-Pour chaque compétence, indique le niveau coché (1, 2, 3, 4, 5, ou N/A):
-- programmation, bases_de_donnees, cloud, machine_learning, devops, gestion_projet, anglais_technique
+1b. CHAMPS TEXTE (2 colonnes) :
+    Colonne gauche : "Nom de naissance *" → ligne pointillée
+    Colonne droite : "Nom d'usage" → ligne pointillée
+    Ligne complète : "Prénom(s) *" → ligne pointillée
 
-SECTION 8 - MOTIVATIONS:
-- objectifs: LISTE des cases cochées parmi [Reconversion, Montée compétences, Management, Spécialisation, Certification, Création entreprise, Retour emploi]
-- projet_professionnel: Texte libre écrit dans la zone
+1c. DATE DE NAISSANCE ET LIEU (2 colonnes) :
+    Colonne gauche : "Date de naissance *" → 8 petites cases : [J][J] / [M][M] / [A][A][A][A]
+    Colonne droite : "Lieu de naissance *" → ligne pointillée
+    → Lire les chiffres dans chaque case, convertir en YYYY-MM-DD
 
-SECTION 9 - SITUATION PARTICULIÈRE:
-- situations: LISTE des cases cochées parmi [RQTH, Obligation emploi, Demandeur longue durée, RSA/ASS, Parent isolé, Aucune]
-- besoin_amenagements: Case Oui ou Non cochée
-- amenagements_details: Précision si Oui
+1d. NATIONALITÉ (ligne horizontale de 3 cases) :
+    Layout : [☐] Française    [☐] Union Européenne    [☐] Hors UE (préciser) : ___________
+    → UNE SEULE case cochée. Si "Hors UE" coché, lire le texte à droite → nationalite_autre
 
-SECTION 10 - ENGAGEMENTS ET SIGNATURE:
-- exactitude_informations: Case cochée (obligatoire)
-- reglement_interieur: Case cochée (obligatoire)
-- conditions_generales: Case cochée (obligatoire)
-- autorisation_contact: Case cochée
-- accepte_autres_formations: Case cochée (facultatif)
-- lieu_signature: "Fait à" écrit
-- date_signature: Date au format YYYY-MM-DD
-- signature_presente: true si une signature manuscrite est visible
+--- SECTION 2 : COORDONNÉES ---
+Titre encadré gris : "SECTION 2 - COORDONNÉES"
 
-INSTRUCTIONS IMPORTANTES:
-1. Regarde VISUELLEMENT chaque case: cochée (✓, X, remplie) ou vide
-2. Pour les champs à choix multiples (domaines, financements, objectifs, situations), retourne une LISTE
-3. Pour le tableau des compétences, identifie la case cochée sur chaque ligne
-4. Lis le texte manuscrit dans les zones de texte libre
-5. Les dates peuvent être dans des cases individuelles (JJ/MM/AAAA), convertis en YYYY-MM-DD
+2a. CHAMPS TEXTE :
+    "Adresse *" → ligne pointillée
+    "Complément" → ligne pointillée
+    3 colonnes : "Code postal *" → 5 cases [C][C][C][C][C] | "Ville *" → ligne pointillée
+    2 colonnes : "Téléphone fixe" → ligne | "Téléphone mobile *" → ligne
+    "Email *" → ligne pointillée
 
-Réponds en JSON structuré avec les sections imbriquées:
+2b. MODE DE CONTACT PRÉFÉRÉ (encadré pointillé "note-box", cocher UNE seule case) :
+    Label : "Mode de contact préféré (cochez une seule case) :"
+    Layout horizontal : [☐] Courrier postal    [☐] Email    [☐] SMS    [☐] Téléphone
+    → Examiner les 4 cases de gauche à droite. UNE SEULE doit être cochée.
+    → Valeurs : "Courrier postal", "Email", "SMS", "Téléphone"
+
+--- SECTION 3 : SITUATION PROFESSIONNELLE ACTUELLE ---
+Titre encadré gris : "SECTION 3 - SITUATION PROFESSIONNELLE ACTUELLE *"
+
+3a. STATUT ACTUEL (grille de 10 cases, disposition en flux sur ~2-3 lignes) :
+    Ligne 1 : [☐] Salarié(e) CDI   [☐] Salarié(e) CDD   [☐] Intérimaire   [☐] Fonctionnaire
+    Ligne 2 : [☐] Indépendant / Auto-entrepreneur   [☐] Chef d'entreprise   [☐] Demandeur d'emploi 
+    Ligne 3 : [☐] Étudiant(e)   [☐] Retraité(e)   [☐] Sans activité
+    → UNE SEULE case cochée parmi les 10.
+    → ATTENTION : les cases sont petites (4mm), les marques manuscrites peuvent être fines.
+
+3b. CHAMPS TEXTE :
+    "Employeur actuel" → ligne pointillée
+    2 colonnes : "Fonction / Poste" → ligne | "Secteur d'activité" → ligne
+
+3c. CATÉGORIE SOCIO-PROFESSIONNELLE (5 cases en ligne) :
+    Ligne 1 : [☐] Cadre supérieur  [☐] Cadre  [☐] Technicien / Agent de maîtrise  [☐] Employé  
+    Ligne 2 : [☐] Ouvrier
+    → UNE SEULE case cochée.
+
+3d. ANNÉES D'EXPÉRIENCE (4 cases en ligne) :
+    Layout : [☐] 0-2 ans    [☐] 3-5 ans    [☐] 6-10 ans    [☐] 10+ ans
+    → UNE SEULE case cochée.
+
+--- SECTION 4 : NIVEAU D'ÉTUDES ET DIPLÔMES ---
+Titre encadré gris : "SECTION 4 - NIVEAU D'ÉTUDES ET DIPLÔMES"
+
+4a. DERNIER DIPLÔME OBTENU (8 cases en flux sur ~2 lignes) :
+    Ligne 1 : [☐] Sans diplôme   [☐] CAP / BEP   [☐] Baccalauréat   [☐] Bac +2 (BTS, DUT)
+    Ligne 2 : [☐] Bac +3 (Licence)   [☐] Bac +4 (Maîtrise)   [☐] Bac +5 (Master, Ingénieur)   [☐] Doctorat
+    → UNE SEULE case cochée.
+    → Valeurs exactes : "Sans diplôme", "CAP / BEP", "Baccalauréat", "Bac +2 (BTS, DUT)",
+      "Bac +3 (Licence)", "Bac +4 (Maîtrise)", "Bac +5 (Master, Ingénieur)", "Doctorat"
+
+4b. CHAMPS TEXTE :
+    2 colonnes : "Intitulé du diplôme" → ligne | "Année d'obtention" → ligne courte (20mm)
+    "Établissement" → ligne pointillée
+
+--- SECTION 5 : FORMATION SOUHAITÉE ---
+Titre encadré gris : "SECTION 5 - FORMATION SOUHAITÉE *"
+
+5a. DOMAINE DE FORMATION (9 cases LARGES (5mm) en flux, PLUSIEURS CHOIX possibles) :
+    Ligne 1 : [☐] Intelligence Artificielle / Machine Learning   [☐] Développement Web / Mobile
+    Ligne 2 : [☐] Cloud Computing (AWS, GCP, Azure)   [☐] Data Science / Data Engineering   [☐] Cybersécurité
+    Ligne 3 : [☐] DevOps / SRE   [☐] Gestion de projet / Agilité   [☐] Architecture logicielle
+    Ligne 4 : [☐] Autre : ______________
+    → LISTE : PLUSIEURS cases peuvent être cochées simultanément.
+    → Si "Autre" coché, lire le texte dans la zone à droite → domaine_autre_precision
+
+5b. NIVEAU VISÉ (4 cases en ligne, choix unique) :
+    Layout : [☐] Initiation    [☐] Intermédiaire    [☐] Avancé    [☐] Expert
+
+5c. MODALITÉ SOUHAITÉE (4 cases en ligne, choix unique) :
+    Layout : [☐] Présentiel    [☐] Distanciel synchrone    [☐] E-learning (asynchrone)    [☐] Hybride
+
+5d. DISPONIBILITÉ (4 cases en flux, choix unique) :
+    Ligne 1 : [☐] Temps plein   [☐] Temps partiel (soirs)   [☐] Week-ends uniquement   
+    Ligne 2 : [☐] À définir selon planning
+
+5e. DATE DE DÉBUT SOUHAITÉE (3 cases en ligne, choix unique) :
+    Layout : [☐] Dès que possible    [☐] Septembre 2026    [☐] Janvier 2027
+
+--- SECTION 6 : MODE DE FINANCEMENT ---
+Titre encadré gris : "SECTION 6 - MODE DE FINANCEMENT *"
+
+6a. FINANCEMENT ENVISAGÉ (8 cases LARGES (5mm) en flux, PLUSIEURS CHOIX possibles) :
+    Mention : "(plusieurs choix possibles)"
+    Ligne 1 : [☐] CPF (Compte Personnel de Formation)   [☐] Plan de développement des compétences (employeur) 
+    Ligne 2 : [☐] Pôle Emploi / France Travail (AIF)   [☐] OPCO de branche   [☐] Transition professionnelle (PTP/CPF-TP)   
+    Ligne 3 : [☐] Autofinancement personnel   [☐] Région / Collectivité territoriale   [☐] Autre : ______________
+    → LISTE : PLUSIEURS cases peuvent être cochées.
+    → Si "Autre" coché, lire le texte → financement_autre_precision
+
+6b. ACCORD DE FINANCEMENT (encadré pointillé "note-box", 3 cases en ligne, choix unique) :
+    Label : "Avez-vous déjà un accord de financement ?"
+    Layout : [☐] Oui, accord obtenu    [☐] En cours de demande    [☐] Non, à initier
+
+--- SECTION 7 : AUTO-ÉVALUATION DES COMPÉTENCES ACTUELLES ---
+Titre encadré gris : "SECTION 7 - AUTO-ÉVALUATION DES COMPÉTENCES ACTUELLES"
+Sous-titre : "Évaluez votre niveau actuel de 1 (débutant) à 5 (expert)"
+
+🔴 SECTION LA PLUS DIFFICILE - RISQUE ÉLEVÉ DE CONFUSION ENTRE LIGNES 🔴
+
+TABLEAU avec 7 lignes × 6 colonnes de cases à cocher.
+En-têtes de colonnes : | Compétence | 1 | 2 | 3 | 4 | 5 | N/A |
+
+La structure physique du tableau est :
+┌──────────────────────────────────┬────┬────┬────┬────┬────┬─────┐
+│ Compétence                       │  1 │  2 │  3 │  4 │  5 │ N/A │
+├──────────────────────────────────┼────┼────┼────┼────┼────┼─────┤
+│ Programmation (Python, Java...)  │ [☐]│ [☐]│ [☐]│ [☐]│ [☐]│ [☐] │ ← LIGNE 1
+├──────────────────────────────────┼────┼────┼────┼────┼────┼─────┤
+│ Bases de données (SQL, NoSQL)    │ [☐]│ [☐]│ [☐]│ [☐]│ [☐]│ [☐] │ ← LIGNE 2
+├──────────────────────────────────┼────┼────┼────┼────┼────┼─────┤
+│ Cloud (AWS, GCP, Azure)          │ [☐]│ [☐]│ [☐]│ [☐]│ [☐]│ [☐] │ ← LIGNE 3
+├──────────────────────────────────┼────┼────┼────┼────┼────┼─────┤
+│ Machine Learning / IA            │ [☐]│ [☐]│ [☐]│ [☐]│ [☐]│ [☐] │ ← LIGNE 4
+├──────────────────────────────────┼────┼────┼────┼────┼────┼─────┤
+│ DevOps / CI-CD                   │ [☐]│ [☐]│ [☐]│ [☐]│ [☐]│ [☐] │ ← LIGNE 5
+├──────────────────────────────────┼────┼────┼────┼────┼────┼─────┤
+│ Gestion de projet Agile          │ [☐]│ [☐]│ [☐]│ [☐]│ [☐]│ [☐] │ ← LIGNE 6
+├──────────────────────────────────┼────┼────┼────┼────┼────┼─────┤
+│ Anglais technique                │ [☐]│ [☐]│ [☐]│ [☐]│ [☐]│ [☐] │ ← LIGNE 7
+└──────────────────────────────────┴────┴────┴────┴────┴────┴─────┘
+
+PROCESSUS OBLIGATOIRE EN 3 ÉTAPES POUR CHAQUE LIGNE :
+
+  Étape 1 : ANCRAGE SPATIAL
+     - Localiser le texte de la compétence dans la colonne de gauche
+     - Tracer mentalement une LIGNE HORIZONTALE depuis ce texte vers la droite
+     - NE PAS DÉVIER vers la ligne du dessus ou du dessous
+
+  Étape 2 : SCAN DES 6 CASES (toujours de gauche à droite : 1, 2, 3, 4, 5, N/A)
+     - EN RESTANT STRICTEMENT sur cette ligne horizontale
+     - Identifier QUELLE case contient une marque (X, ✓, trait, point)
+     - UNE SEULE case doit être cochée par ligne
+
+  Étape 3 : VÉRIFICATION CROISÉE
+     - La case cochée est-elle bien alignée verticalement sous le bon en-tête (1/2/3/4/5/N/A) ?
+     - La case cochée est-elle bien alignée horizontalement avec le bon label de compétence ?
+     - Si incertitude → re-vérifier l'alignement avant de reporter
+
+Appliquer ce processus 7 fois :
+  Ligne 1 : "Programmation (Python, Java, etc.)"   → programmation
+  Ligne 2 : "Bases de données (SQL, NoSQL)"        → bases_de_donnees
+  Ligne 3 : "Cloud (AWS, GCP, Azure)"              → cloud
+  Ligne 4 : "Machine Learning / IA"                → machine_learning
+  Ligne 5 : "DevOps / CI-CD"                       → devops
+  Ligne 6 : "Gestion de projet Agile"              → gestion_projet
+  Ligne 7 : "Anglais technique"                    → anglais_technique
+
+ERREUR TYPIQUE À ÉVITER : Reporter la valeur de "Bases de données" sur la ligne
+"Programmation" (ou tout autre décalage). Chaque compétence a SA propre ligne de cases.
+Si aucune case n'est cochée sur une ligne → null
+
+--- SECTION 8 : MOTIVATIONS ET PROJET PROFESSIONNEL ---
+Titre encadré gris : "SECTION 8 - MOTIVATIONS ET PROJET PROFESSIONNEL"
+
+8a. OBJECTIF PRINCIPAL (7 cases en flux, PLUSIEURS CHOIX possibles) :
+    Label : "Objectif principal de cette formation :"
+    Ligne 1 : [☐] Reconversion professionnelle   [☐] Montée en compétences sur poste actuel
+    Ligne 2 : [☐] Évolution vers un poste de management   [☐] Spécialisation technique   [☐] Obtention d'une certification
+    Ligne 3 : [☐] Création d'entreprise   [☐] Retour à l'emploi
+    → LISTE : PLUSIEURS cases peuvent être cochées.
+
+8b. PROJET PROFESSIONNEL :
+    Label : "Décrivez brièvement votre projet professionnel :"
+    Zone de texte encadrée (hauteur ~20mm) en dessous.
+    → Lire le texte manuscrit dans cette zone → projet_professionnel
+
+--- SECTION 9 : SITUATION PARTICULIÈRE (facultatif) ---
+Titre encadré gris : "SECTION 9 - SITUATION PARTICULIÈRE (facultatif)"
+
+9a. RECONNAISSANCE PARTICULIÈRE (6 cases en flux, PLUSIEURS CHOIX possibles) :
+    Label : "Bénéficiez-vous d'une reconnaissance particulière ?"
+    Ligne 1 : [☐] RQTH (Reconnaissance Qualité Travailleur Handicapé)   [☐] Bénéficiaire de l'obligation d'emploi
+    Ligne 2 : [☐] Demandeur d'emploi longue durée (> 12 mois)   [☐] Bénéficiaire RSA / ASS   [☐] Parent isolé 
+    Ligne 3 : [☐] Aucune situation particulière
+    → LISTE : PLUSIEURS cases peuvent être cochées.
+
+9b. AMÉNAGEMENTS SPÉCIFIQUES (2 cases en ligne, choix unique) :
+    Label : "Avez-vous besoin d'aménagements spécifiques ?"
+    Layout : [☐] Oui    [☐] Non
+    → true si "Oui" coché, false si "Non" coché, null si aucun
+
+9c. SI OUI, PRÉCISEZ :
+    "Si oui, précisez :" → ligne pointillée → amenagements_details
+
+--- SECTION 10 : ENGAGEMENTS ET SIGNATURE ---
+Titre encadré gris : "SECTION 10 - ENGAGEMENTS ET SIGNATURE *"
+
+10a. CINQ CASES D'ENGAGEMENT (cases LARGES 5mm, disposées VERTICALEMENT, une par ligne) :
+     Label : "En signant ce formulaire, je certifie sur l'honneur :"
+
+     Case 1 : [☐] "L'exactitude des informations fournies dans ce formulaire *"
+              → exactitude_informations (true/false)
+     Case 2 : [☐] "Avoir pris connaissance du règlement intérieur de l'organisme *"
+              → reglement_interieur (true/false)
+     Case 3 : [☐] "Accepter les conditions générales de vente et le programme de formation *"
+              → conditions_generales (true/false)
+     Case 4 : [☐] "Autoriser l'organisme à me contacter par les moyens indiqués"
+              → autorisation_contact (true/false)
+     Case 5 : [☐] "Accepter de recevoir des informations sur d'autres formations (facultatif)"
+              → accepte_autres_formations (true/false)
+
+     → Examiner CHAQUE case individuellement de haut en bas.
+
+10b. SIGNATURE (2 colonnes en bas) :
+     Colonne gauche :
+       "Fait à *" → ligne pointillée → lieu_signature
+       "Le *" → 8 cases date [J][J]/[M][M]/[A][A][A][A] → date_signature (YYYY-MM-DD)
+     Colonne droite :
+       "Signature du demandeur *" → zone de signature (cadre 25mm hauteur)
+       → signature_presente : true si signature manuscrite visible, false sinon
+
+═══════════════════════════════════════════════════════════════════
+ERREURS COURANTES À ÉVITER
+═══════════════════════════════════════════════════════════════════
+
+1. CONFONDRE LES LIGNES dans le tableau Section 7 → rester sur la même ligne horizontale
+2. NE PAS VOIR une case cochée au crayon gris → toute marque = COCHÉ
+3. CONFONDRE choix unique / choix multiple :
+   - CHOIX UNIQUE : civilité, nationalité, mode contact, statut pro, catégorie sociopro,
+     expérience, diplôme, niveau visé, modalité, disponibilité, date début, statut accord,
+     aménagements
+   - CHOIX MULTIPLE : domaines formation, types financement, objectifs, situations
+4. OUBLIER de lire les zones de texte libre (projet professionnel, précisions "Autre")
+5. MAL LIRE les dates dans les petites cases → bien lire chaque chiffre
+
+═══════════════════════════════════════════════════════════════════
+FORMAT DE SORTIE JSON
+═══════════════════════════════════════════════════════════════════
+
+Réponds UNIQUEMENT en JSON structuré avec les sections imbriquées :
 {
     "numero_formulaire": "DEMO-2026-05",
-    "etat_civil": { ... },
-    "coordonnees": { ... },
-    "situation_professionnelle": { ... },
-    "niveau_etudes": { ... },
-    "formation_souhaitee": { ... },
-    "financement": { ... },
-    "competences": { ... },
-    "motivations": { ... },
-    "situation_particuliere": { ... },
-    "engagements": { ... }
+    "etat_civil": {
+        "civilite": "M." | "Mme" | "Ne souhaite pas répondre" | null,
+        "nom_naissance": "...", "nom_usage": "..." | null,
+        "prenoms": "...", "date_naissance": "YYYY-MM-DD",
+        "lieu_naissance": "...",
+        "nationalite": "Française" | "Union Européenne" | "Hors UE" | null,
+        "nationalite_autre": "..." | null
+    },
+    "coordonnees": {
+        "adresse": "...", "complement_adresse": "..." | null,
+        "code_postal": "XXXXX", "ville": "...",
+        "telephone_fixe": "..." | null, "telephone_mobile": "...",
+        "email": "...",
+        "mode_contact_prefere": "Courrier postal" | "Email" | "SMS" | "Téléphone" | null
+    },
+    "situation_professionnelle": {
+        "statut": "..." | null, "employeur": "..." | null,
+        "fonction": "..." | null, "secteur_activite": "..." | null,
+        "categorie_sociopro": "..." | null,
+        "experience": "0-2 ans" | "3-5 ans" | "6-10 ans" | "10+ ans" | null
+    },
+    "niveau_etudes": {
+        "dernier_diplome": "..." | null,
+        "intitule_diplome": "..." | null,
+        "annee_obtention": "..." | null,
+        "etablissement": "..." | null
+    },
+    "formation_souhaitee": {
+        "domaines": ["...", "..."],
+        "domaine_autre_precision": "..." | null,
+        "niveau_vise": "..." | null, "modalite": "..." | null,
+        "disponibilite": "..." | null, "date_debut": "..." | null
+    },
+    "financement": {
+        "types_financement": ["...", "..."],
+        "financement_autre_precision": "..." | null,
+        "statut_accord": "..." | null
+    },
+    "competences": {
+        "programmation": "1"-"5" | "N/A" | null,
+        "bases_de_donnees": ..., "cloud": ..., "machine_learning": ...,
+        "devops": ..., "gestion_projet": ..., "anglais_technique": ...
+    },
+    "motivations": {
+        "objectifs": ["...", "..."],
+        "projet_professionnel": "..." | null
+    },
+    "situation_particuliere": {
+        "situations": ["...", "..."],
+        "besoin_amenagements": true | false | null,
+        "amenagements_details": "..." | null
+    },
+    "engagements": {
+        "exactitude_informations": true | false,
+        "reglement_interieur": true | false,
+        "conditions_generales": true | false,
+        "autorisation_contact": true | false,
+        "accepte_autres_formations": true | false,
+        "lieu_signature": "..." | null,
+        "date_signature": "YYYY-MM-DD" | null,
+        "signature_presente": true | false
+    }
 }"""

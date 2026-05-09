@@ -41,6 +41,17 @@ class CarteIdentite(BaseModel):
 
     nom: str = Field(description="Nom de famille (en majuscules)")
 
+    @field_validator("numero_document")
+    @classmethod
+    def validate_numero_cni(cls, v: str) -> str:
+        """Valide que le numéro de CNI fait exactement 12 caractères alphanumériques."""
+        cleaned = v.replace(" ", "").replace("-", "")
+        if len(cleaned) != 12 or not cleaned.isalnum():
+            raise ValueError(
+                f"Numéro de CNI invalide : doit faire 12 caractères alphanumériques, reçu '{v}'"
+            )
+        return cleaned
+
     prenom: str = Field(description="Prénom(s)")
 
     date_naissance: date = Field(description="Date de naissance au format YYYY-MM-DD")
@@ -141,6 +152,19 @@ class RIB(BaseModel):
 
     nom_banque: Optional[str] = Field(None, description="Nom de la banque")
 
+    @field_validator("bic")
+    @classmethod
+    def validate_bic_format(cls, v: Optional[str]) -> Optional[str]:
+        """Valide que le BIC fait 8 ou 11 caractères."""
+        if v is None:
+            return None
+        cleaned = v.replace(" ", "").upper()
+        if len(cleaned) not in (8, 11):
+            raise ValueError(
+                f"BIC invalide : doit faire 8 ou 11 caractères, reçu {len(cleaned)}"
+            )
+        return cleaned
+
     adresse_banque: Optional[str] = Field(None, description="Adresse de l'agence bancaire")
 
     numero_compte: Optional[str] = Field(
@@ -153,11 +177,20 @@ class RIB(BaseModel):
 
     @field_validator("iban")
     @classmethod
-    def clean_iban(cls, v: Optional[str]) -> Optional[str]:
-        """Nettoie l'IBAN en supprimant les espaces."""
+    def clean_and_validate_iban_format(cls, v: Optional[str]) -> Optional[str]:
+        """Nettoie l'IBAN et valide son format technique."""
         if v is None:
             return None
-        return v.replace(" ", "").upper()
+        cleaned = v.replace(" ", "").upper()
+        if not cleaned.startswith("FR"):
+            raise ValueError(
+                f"IBAN français invalide : doit commencer par FR, reçu '{cleaned[:2]}'"
+            )
+        if len(cleaned) != 27:
+            raise ValueError(
+                f"IBAN français invalide : doit faire 27 caractères, reçu {len(cleaned)}"
+            )
+        return cleaned
 
     @model_validator(mode="after")
     def validate_iban_checksum(self):
@@ -294,6 +327,19 @@ class Passeport(BaseModel):
 
     numero_passeport: str = Field(description="Numéro du passeport")
     nom: str = Field(description="Nom de famille (en majuscules)")
+
+    @field_validator("numero_passeport")
+    @classmethod
+    def validate_numero_passeport(cls, v: str) -> str:
+        """Valide le format du numéro de passeport français (2 chiffres + 2 lettres + 5 chiffres)."""
+        import re
+
+        cleaned = v.replace(" ", "").upper()
+        if not re.match(r"^\d{2}[A-Z]{2}\d{5}$", cleaned):
+            raise ValueError(
+                f"Numéro de passeport invalide : format attendu 2 chiffres + 2 lettres + 5 chiffres (ex: 24AX12345), reçu '{v}'"
+            )
+        return cleaned
     prenom: str = Field(description="Prénom(s)")
     date_naissance: date = Field(description="Date de naissance au format YYYY-MM-DD")
     lieu_naissance: Optional[str] = Field(None, description="Lieu de naissance (ville et pays)")
