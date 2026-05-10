@@ -4,8 +4,11 @@ Point d'entrée principal du démonstrateur KYC.
 Exemple d'utilisation pour la conférence!
 """
 
+import os
 import re
 import sys
+
+os.environ["LANGCHAIN_OPENAI_TCP_KEEPALIVE"] = "0"
 
 from dotenv import load_dotenv
 
@@ -31,8 +34,6 @@ def demo_document_unique(image_path: str):
     result = chain.process_document(image_path)
 
     if result.extraction_reussie:
-        print("\n✅ EXTRACTION RÉUSSIE\n")
-
         # Afficher selon le type
         if result.carte_identite:
             cni = result.carte_identite

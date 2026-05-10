@@ -331,7 +331,7 @@ class Coordonnees(BaseModel):
             return v
         if "@" not in v or "." not in v:
             raise ValueError("Email invalide (doit contenir @ et .)")
-        return v
+        return v.lower()
 
     @field_validator("telephone_mobile")
     @classmethod

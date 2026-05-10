@@ -77,6 +77,39 @@ class Configuration:
     INPUT_TOKEN_PRICE_PER_MILLION: float = 0.15
     OUTPUT_TOKEN_PRICE_PER_MILLION: float = 0.60
 
+    # --- LiteLLM (proxy pour modèles récents) ---
+
+    @property
+    def litellm_api_base(self) -> str | None:
+        """URL du proxy LiteLLM. Si défini, active le mode LiteLLM."""
+        return os.getenv("LITELLM_API_BASE")
+
+    @property
+    def litellm_api_key(self) -> str:
+        """Clé API LiteLLM."""
+        return os.getenv("LITELLM_API_KEY", "")
+
+    @property
+    def litellm_model_rad(self) -> str:
+        """Modèle LiteLLM pour la classification (RAD)."""
+        return os.getenv("LITELLM_MODEL_RAD", "gemini-3.1-flash-preview")
+
+    @property
+    def litellm_model_lad(self) -> str:
+        """Modèle LiteLLM pour l'extraction (LAD)."""
+        return os.getenv("LITELLM_MODEL_LAD", "gemini-3.1-pro-preview")
+
+    @property
+    def litellm_cert_path(self) -> str | None:
+        """Chemin vers le certificat TLS pour LiteLLM."""
+        path = os.getenv("LITELLM_CERT_PATH", "")
+        return path if path else None
+
+    @property
+    def use_litellm(self) -> bool:
+        """True si LiteLLM est configuré avec une URL et une clé valide."""
+        return bool(self.litellm_api_base and self.litellm_api_key and self.litellm_api_key != "CHANGE_ME")
+
     @property
     def document_types(self) -> list[str]:
         """Types de documents supportés."""

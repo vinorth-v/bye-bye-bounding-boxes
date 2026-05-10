@@ -26,6 +26,9 @@ test_results/
 # Debug
 debug_last_response.json
 
+# Certificats
+*.pem
+
 # Google Cloud
 credentials.json
 .vscode
