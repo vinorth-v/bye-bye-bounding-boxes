@@ -9,11 +9,34 @@ Supporte deux backends:
 import base64
 import json
 import time
+import warnings
+from typing import get_args, get_origin
+
+warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
 from pathlib import Path
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from chains.configuration import Configuration
+
+
+class ExtractionValidationError(Exception):
+    """ValidationError from document extraction, carrying raw data for partial display."""
+
+    def __init__(self, validation_error: ValidationError, raw_data: dict, token_usage: dict | None):
+        super().__init__(str(validation_error))
+        self.validation_error = validation_error
+        self.raw_data = raw_data
+        self.token_usage = token_usage
+
+    def errors(self) -> list:
+        return self.validation_error.errors()
+
+    @property
+    def title(self) -> str:
+        return self.validation_error.title
+
+
 from chains.prompts import (
     PROMPT_CLASSIFICATION,
     PROMPT_EXTRACTION_CNI,
@@ -34,6 +57,63 @@ from chains.schemas import (
     ResultatExtractionKYC,
     TypeDocument,
 )
+
+
+def _build_partial(model_cls: type[BaseModel], data: dict) -> BaseModel:
+    """Reconstruit un modèle Pydantic sans validation pour l'affichage post-erreur.
+
+    Coerce enums, dates et listes pour que .value et les propriétés fonctionnent
+    dans main.py même sans passage par la validation Pydantic.
+    """
+    import typing
+    from datetime import date as date_type
+    from datetime import datetime
+    from enum import Enum
+
+    kwargs = {}
+    for field_name, field_info in model_cls.model_fields.items():
+        if field_name not in data:
+            continue
+        value = data[field_name]
+        ann = field_info.annotation
+        # Unwrap Optional[X] = Union[X, None] only — preserve list[X] and other generics as-is
+        if get_origin(ann) is typing.Union:
+            type_args = get_args(ann)
+            actual = next((a for a in type_args if a is not type(None)), ann)
+        else:
+            actual = ann
+        origin = get_origin(actual)
+        actual_cls = origin if origin is not None else actual
+        item_cls = get_args(actual)[0] if origin is list and get_args(actual) else None
+
+        if isinstance(actual_cls, type) and issubclass(actual_cls, BaseModel) and isinstance(value, dict):
+            value = _build_partial(actual_cls, value)
+        elif isinstance(actual_cls, type) and issubclass(actual_cls, Enum) and isinstance(value, str):
+            try:
+                value = actual_cls(value)
+            except (ValueError, KeyError):
+                pass
+        elif origin is list and item_cls is not None and isinstance(value, list):
+            coerced = []
+            for item in value:
+                if isinstance(item_cls, type) and issubclass(item_cls, BaseModel) and isinstance(item, dict):
+                    coerced.append(_build_partial(item_cls, item))
+                elif isinstance(item_cls, type) and issubclass(item_cls, Enum) and isinstance(item, str):
+                    try:
+                        coerced.append(item_cls(item))
+                    except (ValueError, KeyError):
+                        coerced.append(item)
+                else:
+                    coerced.append(item)
+            value = coerced
+        elif actual_cls is date_type and isinstance(value, str):
+            try:
+                value = datetime.strptime(value, "%Y-%m-%d").date()
+            except (ValueError, AttributeError):
+                pass
+
+        kwargs[field_name] = value
+    return model_cls.model_construct(**kwargs)
 
 
 class KYCDocumentChain:
@@ -242,7 +322,7 @@ class KYCDocumentChain:
             print(f"   ⚠️  Impossible d'extraire les statistiques de tokens: {e}")
         return None
 
-    def _log_token_usage(self, document_type: str, token_usage: dict):
+    def _log_token_usage(self, document_type: str, token_usage: dict, role: str = "lad"):
         """Log les statistiques de tokens pour un document."""
         if not token_usage:
             return
@@ -252,21 +332,29 @@ class KYCDocumentChain:
         total_tok = token_usage.get("total_tokens", 0)
         overhead_tok = token_usage.get("overhead_tokens", 0)
 
-        input_cost = (input_tok / 1_000_000) * self.config.INPUT_TOKEN_PRICE_PER_MILLION
-        output_cost = (output_tok / 1_000_000) * self.config.OUTPUT_TOKEN_PRICE_PER_MILLION
+        if role == "rad":
+            input_price = self.config.RAD_INPUT_TOKEN_PRICE_PER_MILLION
+            output_price = self.config.RAD_OUTPUT_TOKEN_PRICE_PER_MILLION
+        else:
+            input_price = self.config.LAD_INPUT_TOKEN_PRICE_PER_MILLION
+            output_price = self.config.LAD_OUTPUT_TOKEN_PRICE_PER_MILLION
+
+        input_cost = (input_tok / 1_000_000) * input_price
+        output_cost = (output_tok / 1_000_000) * output_price
         total_cost = input_cost + output_cost
 
-        if overhead_tok > 0:
-            print(
-                f"💰 Tokens {document_type}: "
-                f"input={input_tok}, output={output_tok}, total={total_tok} "
-                f"(overhead: {overhead_tok}) | Coût: ${total_cost:.6f}"
-            )
-        else:
-            print(
-                f"💰 Tokens {document_type}: "
-                f"input={input_tok}, output={output_tok}, total={total_tok} | Coût: ${total_cost:.6f}"
-            )
+        if self.config.show_cost:
+            if overhead_tok > 0:
+                print(
+                    f"💰 Tokens {document_type}: "
+                    f"input={input_tok}, output={output_tok}, total={total_tok} "
+                    f"(overhead: {overhead_tok}) | Coût: ${total_cost:.6f}"
+                )
+            else:
+                print(
+                    f"💰 Tokens {document_type}: "
+                    f"input={input_tok}, output={output_tok}, total={total_tok} | Coût: ${total_cost:.6f}"
+                )
 
     # -------------------------------------------------------------------------
     # Classification et extraction
@@ -293,9 +381,12 @@ class KYCDocumentChain:
         text, token_usage = self._generate("rad", PROMPT_CLASSIFICATION, image_path)
 
         if token_usage:
-            self._log_token_usage("Classification", token_usage)
+            self._log_token_usage("Classification", token_usage, role="rad")
 
         result_json = self._parse_json(text)
+        if self.config.show_raw_rad:
+            print("\n📋 JSON brut RAD:\n")
+            print(json.dumps(result_json, ensure_ascii=False, indent=2))
         return ClassificationDocument(**result_json), token_usage
 
     def extract_cni(self, image_path: str | Path) -> tuple[CarteIdentite, dict | None]:
@@ -306,7 +397,13 @@ class KYCDocumentChain:
             self._log_token_usage("Extraction CNI", token_usage)
 
         result_json = self._parse_json(text)
-        return CarteIdentite(**result_json), token_usage
+        if self.config.show_raw_lad:
+            print("\n📋 JSON brut LAD:\n")
+            print(json.dumps(result_json, ensure_ascii=False, indent=2))
+        try:
+            return CarteIdentite(**result_json), token_usage
+        except ValidationError as e:
+            raise ExtractionValidationError(e, result_json, token_usage) from e
 
     def extract_passeport(self, image_path: str | Path) -> tuple[Passeport, dict | None]:
         """Extrait les données d'un passeport."""
@@ -316,7 +413,13 @@ class KYCDocumentChain:
             self._log_token_usage("Extraction Passeport", token_usage)
 
         result_json = self._parse_json(text)
-        return Passeport(**result_json), token_usage
+        if self.config.show_raw_lad:
+            print("\n📋 JSON brut LAD:\n")
+            print(json.dumps(result_json, ensure_ascii=False, indent=2))
+        try:
+            return Passeport(**result_json), token_usage
+        except ValidationError as e:
+            raise ExtractionValidationError(e, result_json, token_usage) from e
 
     def extract_permis(self, image_path: str | Path) -> tuple[PermisConduire, dict | None]:
         """Extrait les données d'un permis de conduire."""
@@ -326,7 +429,13 @@ class KYCDocumentChain:
             self._log_token_usage("Extraction Permis", token_usage)
 
         result_json = self._parse_json(text)
-        return PermisConduire(**result_json), token_usage
+        if self.config.show_raw_lad:
+            print("\n📋 JSON brut LAD:\n")
+            print(json.dumps(result_json, ensure_ascii=False, indent=2))
+        try:
+            return PermisConduire(**result_json), token_usage
+        except ValidationError as e:
+            raise ExtractionValidationError(e, result_json, token_usage) from e
 
     def extract_justificatif(
         self, image_path: str | Path
@@ -338,7 +447,13 @@ class KYCDocumentChain:
             self._log_token_usage("Extraction Justificatif", token_usage)
 
         result_json = self._parse_json(text)
-        return JustificatifDomicile(**result_json), token_usage
+        if self.config.show_raw_lad:
+            print("\n📋 JSON brut LAD:\n")
+            print(json.dumps(result_json, ensure_ascii=False, indent=2))
+        try:
+            return JustificatifDomicile(**result_json), token_usage
+        except ValidationError as e:
+            raise ExtractionValidationError(e, result_json, token_usage) from e
 
     def extract_rib(self, image_path: str | Path) -> tuple[RIB, dict | None]:
         """Extrait les données d'un RIB."""
@@ -348,7 +463,13 @@ class KYCDocumentChain:
             self._log_token_usage("Extraction RIB", token_usage)
 
         result_json = self._parse_json(text)
-        return RIB(**result_json), token_usage
+        if self.config.show_raw_lad:
+            print("\n📋 JSON brut LAD:\n")
+            print(json.dumps(result_json, ensure_ascii=False, indent=2))
+        try:
+            return RIB(**result_json), token_usage
+        except ValidationError as e:
+            raise ExtractionValidationError(e, result_json, token_usage) from e
 
     def extract_formulaire(
         self, image_path: str | Path
@@ -356,7 +477,7 @@ class KYCDocumentChain:
         """
         Extrait les données d'un formulaire d'inscription.
 
-        C'est LE CLIMAX DE LA DÉMO: ~120 cases à cocher détectées visuellement!
+        C'est LE CLIMAX DE LA DÉMO: 140 cases à cocher détectées visuellement!
         """
         text, token_usage = self._generate("lad", PROMPT_EXTRACTION_FORMULAIRE, image_path)
 
@@ -367,19 +488,18 @@ class KYCDocumentChain:
 
         print("\n✅ EXTRACTION RÉUSSIE")
 
-        # Dump JSON brut pour debug
-        debug_path = Path("debug_last_response.json")
-        with open(debug_path, "w", encoding="utf-8") as f:
-            json.dump(result_json, f, ensure_ascii=False, indent=2)
-        print(f"\n📝 JSON brut sauvegardé dans: {debug_path}")
-        print("\n📋 Réponse JSON brute du modèle:\n")
-        print(json.dumps(result_json, ensure_ascii=False, indent=2))
+        if self.config.show_raw_lad:
+            debug_path = Path("debug_last_response.json")
+            with open(debug_path, "w", encoding="utf-8") as f:
+                json.dump(result_json, f, ensure_ascii=False, indent=2)
+            print(f"\n📝 JSON brut sauvegardé dans: {debug_path}")
+            print("\n📋 JSON brut LAD:\n")
+            print(json.dumps(result_json, ensure_ascii=False, indent=2))
 
         try:
             return FormulaireInscription(**result_json), token_usage
         except ValidationError as e:
-            e.token_usage = token_usage  # type: ignore[attr-defined]
-            raise
+            raise ExtractionValidationError(e, result_json, token_usage) from e
 
     # -------------------------------------------------------------------------
     # Pipeline principal
@@ -412,19 +532,21 @@ class KYCDocumentChain:
                 if classification.confiance is not None
                 else ""
             )
-            print(f"✅ CLASSIFICATION RÉUSSIE : {classification.type_detecte.value}{confiance_str}")
+            print(f"\n✅ CLASSIFICATION RÉUSSIE : {classification.type_detecte.value}{confiance_str}")
 
+            rad_cost = 0.0
             if token_usage_classification:
                 for key in total_tokens_usage:
                     total_tokens_usage[key] += token_usage_classification.get(key, 0)
                 rad_cost = (
                     token_usage_classification.get("input_tokens", 0) / 1_000_000
-                ) * self.config.INPUT_TOKEN_PRICE_PER_MILLION + (
+                ) * self.config.RAD_INPUT_TOKEN_PRICE_PER_MILLION + (
                     token_usage_classification.get("output_tokens", 0) / 1_000_000
-                ) * self.config.OUTPUT_TOKEN_PRICE_PER_MILLION
-                print(
-                    f"📊 Coût RAD: ${rad_cost:.6f} | Latence: {latence_rad / 2:.1f}s"
-                )
+                ) * self.config.RAD_OUTPUT_TOKEN_PRICE_PER_MILLION
+                if self.config.show_cost:
+                    print(f"📊 Coût RAD: ${rad_cost:.6f}")
+                if self.config.show_latency:
+                    print(f"⏱️  Latence RAD: {latence_rad / 2:.1f}s")
 
             # 2. Extraction selon le type (LAD - Lecture Automatique de Documents)
             print(f"\n📄 Extraction des données (LAD) :")
@@ -446,31 +568,29 @@ class KYCDocumentChain:
                 extraction_result, token_usage_extraction = extractor(image_path)
             latence_lad = time.time() - t0_lad
 
+            lad_cost = 0.0
             if token_usage_extraction:
                 for key in total_tokens_usage:
                     total_tokens_usage[key] += token_usage_extraction.get(key, 0)
                 lad_cost = (
                     token_usage_extraction.get("input_tokens", 0) / 1_000_000
-                ) * self.config.INPUT_TOKEN_PRICE_PER_MILLION + (
+                ) * self.config.LAD_INPUT_TOKEN_PRICE_PER_MILLION + (
                     token_usage_extraction.get("output_tokens", 0) / 1_000_000
-                ) * self.config.OUTPUT_TOKEN_PRICE_PER_MILLION
-                print(
-                    f"📊 Coût LAD: ${lad_cost:.6f} | Latence: {latence_lad / 2:.1f}s"
-                )
+                ) * self.config.LAD_OUTPUT_TOKEN_PRICE_PER_MILLION
+                if self.config.show_cost:
+                    print(f"📊 Coût LAD: ${lad_cost:.6f}")
+                if self.config.show_latency:
+                    print(f"⏱️  Latence LAD: {latence_lad / 2:.1f}s")
 
             if classification.type_detecte != TypeDocument.FORMULAIRE_INSCRIPTION:
                 print("\n✅ EXTRACTION RÉUSSIE")
 
             latence_totale = latence_rad + latence_lad
-            if total_tokens_usage["total_tokens"] > 0:
-                total_cost = (
-                    total_tokens_usage["input_tokens"] / 1_000_000
-                ) * self.config.INPUT_TOKEN_PRICE_PER_MILLION + (
-                    total_tokens_usage["output_tokens"] / 1_000_000
-                ) * self.config.OUTPUT_TOKEN_PRICE_PER_MILLION
-                print(
-                    f"\n📊 Coût total (RAD + LAD): ${total_cost:.6f} | Latence totale: {latence_totale / 2:.1f}s"
-                )
+            total_cost = rad_cost + lad_cost
+            if self.config.show_cost and total_cost > 0:
+                print(f"\n📊 Coût total (RAD + LAD): ${total_cost:.6f}")
+            if self.config.show_latency:
+                print(f"⏱️  Latence totale: {latence_totale / 2:.1f}s")
 
             # 3. Construction du résultat
             result = ResultatExtractionKYC(
@@ -496,51 +616,76 @@ class KYCDocumentChain:
 
             return result
 
-        except ValidationError as e:
+        except (ExtractionValidationError, ValidationError) as e:
             latence_lad = time.time() - t0_lad
-            token_usage_from_error = getattr(e, "token_usage", None)
+            token_usage_from_error = e.token_usage if isinstance(e, ExtractionValidationError) else None
+            lad_cost = 0.0
             if token_usage_from_error:
                 for key in total_tokens_usage:
                     total_tokens_usage[key] += token_usage_from_error.get(key, 0)
+                lad_cost = (
+                    token_usage_from_error.get("input_tokens", 0) / 1_000_000
+                ) * self.config.LAD_INPUT_TOKEN_PRICE_PER_MILLION + (
+                    token_usage_from_error.get("output_tokens", 0) / 1_000_000
+                ) * self.config.LAD_OUTPUT_TOKEN_PRICE_PER_MILLION
+                if self.config.show_cost:
+                    print(f"📊 Coût LAD: ${lad_cost:.6f}")
+                if self.config.show_latency:
+                    print(f"⏱️  Latence LAD: {latence_lad / 2:.1f}s")
 
             latence_totale = latence_rad + latence_lad
-            if total_tokens_usage["total_tokens"] > 0:
-                total_cost = (
-                    total_tokens_usage["input_tokens"] / 1_000_000
-                ) * self.config.INPUT_TOKEN_PRICE_PER_MILLION + (
-                    total_tokens_usage["output_tokens"] / 1_000_000
-                ) * self.config.OUTPUT_TOKEN_PRICE_PER_MILLION
-                print(
-                    f"\n📊 Coût total (RAD + LAD): ${total_cost:.6f} | Latence totale: {latence_totale / 2:.1f}s"
-                )
+            total_cost = rad_cost + lad_cost
+            if self.config.show_cost and total_cost > 0:
+                print(f"\n📊 Coût total (RAD + LAD): ${total_cost:.6f}")
+            if self.config.show_latency:
+                print(f"⏱️  Latence totale: {latence_totale / 2:.1f}s")
 
-            print("\n" + "=" * 70)
-            print("⚠️  RÈGLE MÉTIER NON RESPECTÉE")
-            print("=" * 70)
+            metier_errors = []
             for err in e.errors():
-                field = " → ".join(str(loc) for loc in err["loc"])
-                model_name = e.title
-                # Extraire le message sans le préfixe "Value error, "
                 msg = err["msg"]
                 if msg.startswith("Value error, "):
                     msg = msg[len("Value error, "):]
                 input_data = err.get("input", {})
-                print(f"\n📍 Champ : {model_name}.{field}")
-                print(f"💬 Règle : {msg}")
-                if isinstance(input_data, dict):
-                    print("📦 Valeurs reçues :")
-                    for k, v in input_data.items():
-                        print(f"   {k}: {v}")
-                print()
-            print("=" * 70)
+                metier_errors.append({
+                    "champ": f"{e.title}.{' → '.join(str(loc) for loc in err['loc'])}",
+                    "regle": msg,
+                    "valeurs": input_data if isinstance(input_data, dict) else {},
+                })
             erreurs.append(str(e))
-            return ResultatExtractionKYC(
+            result = ResultatExtractionKYC(
                 classification=classification,
                 extraction_reussie=True,
                 regles_metier_validees=False,
                 erreurs=erreurs,
+                erreurs_metier=metier_errors,
                 avertissements=avertissements,
             )
+            raw_data = e.raw_data if isinstance(e, ExtractionValidationError) else None
+            if raw_data and classification:
+                model_map = {
+                    TypeDocument.CARTE_IDENTITE: CarteIdentite,
+                    TypeDocument.PASSEPORT: Passeport,
+                    TypeDocument.PERMIS_CONDUIRE: PermisConduire,
+                    TypeDocument.JUSTIFICATIF_DOMICILE: JustificatifDomicile,
+                    TypeDocument.RIB: RIB,
+                    TypeDocument.FORMULAIRE_INSCRIPTION: FormulaireInscription,
+                }
+                field_map = {
+                    TypeDocument.CARTE_IDENTITE: "carte_identite",
+                    TypeDocument.PASSEPORT: "passeport",
+                    TypeDocument.PERMIS_CONDUIRE: "permis_conduire",
+                    TypeDocument.JUSTIFICATIF_DOMICILE: "justificatif_domicile",
+                    TypeDocument.RIB: "rib",
+                    TypeDocument.FORMULAIRE_INSCRIPTION: "formulaire_inscription",
+                }
+                model_cls = model_map.get(classification.type_detecte)
+                field_name = field_map.get(classification.type_detecte)
+                if model_cls and field_name:
+                    try:
+                        setattr(result, field_name, _build_partial(model_cls, raw_data))
+                    except Exception as build_err:
+                        print(f"   ⚠️  Reconstruction partielle impossible: {build_err}")
+            return result
 
         except Exception as e:
             error_msg = str(e)

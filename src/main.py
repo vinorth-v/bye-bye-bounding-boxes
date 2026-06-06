@@ -44,9 +44,9 @@ def demo_document_unique(image_path: str):
                     ne_text = "Né"
                 elif cni.sexe.value == "F":
                     ne_text = "Née"
-                print(f"📄 Carte d'Identité de {cni.prenom} {cni.nom} ({cni.sexe.value})")
+                print(f"\n📄 Carte d'Identité de {cni.prenom} {cni.nom} ({cni.sexe.value})")
             else:
-                print(f"📄 Carte d'Identité de {cni.prenom} {cni.nom}")
+                print(f"\n📄 Carte d'Identité de {cni.prenom} {cni.nom}")
             print(f"   {ne_text} le: {cni.date_naissance}")
             print(f"   N° document: {cni.numero_document}")
             print(f"   Valide jusqu'au: {cni.date_expiration}")
@@ -62,10 +62,10 @@ def demo_document_unique(image_path: str):
                 ne_text = (
                     "Né" if pp.sexe.value == "M" else ("Née" if pp.sexe.value == "F" else "Né(e)")
                 )
-                print(f"📕 Passeport de {civilite} {pp.prenom} {pp.nom} ({pp.sexe.value})")
+                print(f"\n📕 Passeport de {civilite} {pp.prenom} {pp.nom} ({pp.sexe.value})")
             else:
                 ne_text = "Né(e)"
-                print(f"📕 Passeport de {pp.prenom} {pp.nom}")
+                print(f"\n📕 Passeport de {pp.prenom} {pp.nom}")
             # Date et lieu de naissance
             print(
                 f"   {ne_text} le: {pp.date_naissance} à {pp.lieu_naissance if pp.lieu_naissance else '?'}"
@@ -85,16 +85,22 @@ def demo_document_unique(image_path: str):
 
         elif result.permis_conduire:
             pc = result.permis_conduire
-            print(f"🚗 Permis de Conduire de {pc.prenom} {pc.nom}")
+            ne_text = "Né"
+            if pc.sexe:
+                ne_text = "Né" if pc.sexe.value == "M" else "Née"
+            print(f"\n🚗 Permis de Conduire de {pc.prenom} {pc.nom}")
+            print(f"   {ne_text} le: {pc.date_naissance}")
+            if pc.lieu_naissance:
+                print(f"   Lieu: {pc.lieu_naissance}")
+            print(f"   N° permis: {pc.numero_permis}")
             print(f"   Catégories: {', '.join(pc.categories)}")
-            print("   ⭐ POINT IMPORTANT: ces catégories ont été détectées")
-            print("      visuellement par le LLM en regardant les cases du permis!")
-            print("      Avant = deep learning avec bounding boxes pour chaque case")
-            print("      Maintenant = prompt simple!")
+            print(f"   Émis le: {pc.date_emission}")
+            print(f"   Valide jusqu'au: {pc.date_expiration}")
+            print(f"   Statut: {'✓ Valide' if pc.est_valide else '✗ Expiré'}")
 
         elif result.justificatif_domicile:
             jd = result.justificatif_domicile
-            print("🏠 Justificatif de Domicile")
+            print("\n🏠 Justificatif de Domicile")
             print(f"   Type: {jd.type_document.value}")
             print(f"   Titulaire: {jd.nom_complet}")
             print(f"   Adresse: {jd.adresse_ligne1}")
@@ -108,7 +114,7 @@ def demo_document_unique(image_path: str):
 
         elif result.rib:
             rib = result.rib
-            print("🏦 RIB")
+            print("\n🏦 RIB")
             print(f"   Titulaire: {rib.nom_titulaire}")
             print(f"   IBAN: {rib.iban or '⚠️  Non détecté'}")
             if rib.bic:
@@ -124,14 +130,14 @@ def demo_document_unique(image_path: str):
 
         elif result.formulaire_inscription:
             form = result.formulaire_inscription
-            print("📋 FORMULAIRE D'INSCRIPTION")
+            print("\n📋 FORMULAIRE D'INSCRIPTION")
             print(f"   N° formulaire: {form.numero_formulaire}")
             print()
 
             # Statistiques impressionnantes pour la démo
             nb_cases = form.nombre_cases_cochees
             print(f"   ⭐ CASES COCHÉES DÉTECTÉES: {nb_cases}")
-            print("      Le LLM a analysé visuellement ~120 cases possibles!")
+            print("      Le LLM a analysé visuellement 140 cases possibles!")
             print()
 
             # Section 1: État civil
@@ -142,12 +148,41 @@ def demo_document_unique(image_path: str):
                     print(f"      Civilité: {ec.civilite.value}")
                 if ec.nom_naissance:
                     print(f"      Nom: {ec.nom_naissance}")
+                if ec.nom_usage:
+                    print(f"      Nom d'usage: {ec.nom_usage}")
                 if ec.prenoms:
                     print(f"      Prénom(s): {ec.prenoms}")
                 if ec.date_naissance:
                     print(f"      Né(e) le: {ec.date_naissance}")
+                if ec.lieu_naissance:
+                    print(f"      Lieu de naissance: {ec.lieu_naissance}")
                 if ec.nationalite:
-                    print(f"      Nationalité: {ec.nationalite.value}")
+                    nat = ec.nationalite.value
+                    if ec.nationalite_autre:
+                        nat += f" ({ec.nationalite_autre})"
+                    print(f"      Nationalité: {nat}")
+
+            # Section 2: Coordonnées
+            coord = form.coordonnees
+            if coord.adresse or coord.email or coord.telephone_mobile:
+                print()
+                print("   📍 COORDONNÉES")
+                if coord.adresse:
+                    print(f"      Adresse: {coord.adresse}")
+                if coord.complement_adresse:
+                    print(f"               {coord.complement_adresse}")
+                if coord.code_postal or coord.ville:
+                    cp = coord.code_postal or ""
+                    ville = coord.ville or ""
+                    print(f"               {cp} {ville}".rstrip())
+                if coord.telephone_fixe:
+                    print(f"      Tél. fixe: {coord.telephone_fixe}")
+                if coord.telephone_mobile:
+                    print(f"      Mobile: {coord.telephone_mobile}")
+                if coord.email:
+                    print(f"      Email: {coord.email}")
+                if coord.mode_contact_prefere:
+                    print(f"      Contact préféré: {coord.mode_contact_prefere.value}")
 
             # Section 3: Situation pro
             sp = form.situation_professionnelle
@@ -157,19 +192,42 @@ def demo_document_unique(image_path: str):
                 print(f"      Statut: {sp.statut.value}")
                 if sp.employeur:
                     print(f"      Employeur: {sp.employeur}")
+                if sp.fonction:
+                    print(f"      Fonction: {sp.fonction}")
+                if sp.secteur_activite:
+                    print(f"      Secteur: {sp.secteur_activite}")
+                if sp.categorie_sociopro:
+                    print(f"      Catégorie: {sp.categorie_sociopro.value}")
                 if sp.experience:
                     print(f"      Expérience: {sp.experience.value}")
+
+            # Section 4: Niveau d'études
+            ne = form.niveau_etudes
+            if ne.dernier_diplome:
+                print()
+                print("   🎓 NIVEAU D'ÉTUDES")
+                print(f"      Diplôme: {ne.dernier_diplome.value}")
+                if ne.intitule_diplome:
+                    print(f"      Intitulé: {ne.intitule_diplome}")
+                if ne.annee_obtention:
+                    print(f"      Année: {ne.annee_obtention}")
+                if ne.etablissement:
+                    print(f"      Établissement: {ne.etablissement}")
 
             # Section 5: Formation souhaitée
             fs = form.formation_souhaitee
             if fs.domaines:
                 print()
-                print("   🎓 FORMATION SOUHAITÉE")
+                print("   📚 FORMATION SOUHAITÉE")
                 print(f"      Domaines: {', '.join(d.value for d in fs.domaines)}")
                 if fs.niveau_vise:
                     print(f"      Niveau visé: {fs.niveau_vise.value}")
                 if fs.modalite:
                     print(f"      Modalité: {fs.modalite.value}")
+                if fs.disponibilite:
+                    print(f"      Disponibilité: {fs.disponibilite.value}")
+                if fs.date_debut:
+                    print(f"      Début souhaité: {fs.date_debut.value}")
 
             # Section 6: Financement
             fin = form.financement
@@ -193,11 +251,37 @@ def demo_document_unique(image_path: str):
                 competences_remplies.append(f"ML/IA: {comp.machine_learning.value}")
             if comp.devops:
                 competences_remplies.append(f"DevOps: {comp.devops.value}")
+            if comp.gestion_projet:
+                competences_remplies.append(f"Gestion projet: {comp.gestion_projet.value}")
+            if comp.anglais_technique:
+                competences_remplies.append(f"Anglais: {comp.anglais_technique.value}")
             if competences_remplies:
                 print()
                 print("   📊 AUTO-ÉVALUATION (tableau 7×6 cases)")
                 for c in competences_remplies:
                     print(f"      {c}")
+
+            # Section 8: Motivations
+            mot = form.motivations
+            if mot.objectifs or mot.projet_professionnel:
+                print()
+                print("   🎯 MOTIVATIONS")
+                if mot.objectifs:
+                    print(f"      Objectifs: {', '.join(o.value for o in mot.objectifs)}")
+                if mot.projet_professionnel:
+                    print(f"      Projet: {mot.projet_professionnel}")
+
+            # Section 9: Situation particulière
+            sit = form.situation_particuliere
+            if sit.situations or sit.besoin_amenagements is not None:
+                print()
+                print("   ℹ️  SITUATION PARTICULIÈRE")
+                if sit.situations:
+                    print(f"      Situations: {', '.join(s.value for s in sit.situations)}")
+                if sit.besoin_amenagements is not None:
+                    print(f"      Aménagements: {'Oui' if sit.besoin_amenagements else 'Non'}")
+                if sit.amenagements_details:
+                    print(f"      Détails: {sit.amenagements_details}")
 
             # Section 10: Engagements
             eng = form.engagements
@@ -218,19 +302,34 @@ def demo_document_unique(image_path: str):
                 if eng.date_signature:
                     print(f"   📅 Date: {eng.date_signature}")
 
-            # Message final impressionnant
+        # Règles métier non respectées (toutes classes confondues) — après les données
+        if result.erreurs_metier:
+            print("\n" + "=" * 70)
+            print("⚠️  RÈGLE MÉTIER NON RESPECTÉE")
+            print("=" * 70)
+            for err in result.erreurs_metier:
+                print(f"\n📍 Champ : {err['champ']}")
+                print(f"💬 Règle : {err['regle']}")
+                if err["valeurs"]:
+                    print("📦 Valeurs reçues :")
+                    for k, v in err["valeurs"].items():
+                        print(f"   {k}: {v}")
+            print("\n" + "=" * 70)
+
+        # Point clé de la démo — uniquement pour le formulaire, toujours en dernier
+        if result.formulaire_inscription:
             print()
             print("   " + "=" * 50)
             print("   🎯 POINT CLÉ DE LA DÉMO:")
             print("      Avec du deep learning classique, il aurait fallu:")
-            print("      - Annoter ~120 cases × milliers de formulaires")
+            print("      - Annoter 140 cases × milliers de formulaires")
             print("      - Entraîner un détecteur pour chaque case")
             print("      - Classifier coché/non coché pour chacune")
             print("      = Des MOIS de travail!")
             print()
             print("      Avec un LLM multimodal:")
             print("      - 1 prompt bien écrit")
-            print("      - 1 schéma Pydantic")
+            print("      - 1 schéma de données (Pydantic)")
             print("      = Quelques HEURES de travail!")
             print("   " + "=" * 50)
 

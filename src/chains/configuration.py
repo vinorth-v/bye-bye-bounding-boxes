@@ -73,9 +73,13 @@ class Configuration:
         """Nombre maximum de tokens en sortie."""
         return int(os.getenv("VAR_LLM_MAX_OUTPUT_TOKEN", "4096"))
 
-    # Token pricing (USD per 1M tokens) - Gemini 2.5 Flash
-    INPUT_TOKEN_PRICE_PER_MILLION: float = 0.15
-    OUTPUT_TOKEN_PRICE_PER_MILLION: float = 0.60
+    # Token pricing (USD per 1M tokens)
+    # RAD: gemini-3.1-flash-lite
+    RAD_INPUT_TOKEN_PRICE_PER_MILLION: float = 0.30
+    RAD_OUTPUT_TOKEN_PRICE_PER_MILLION: float = 2.50
+    # LAD: gemini-3.1-pro-preview (≤200K context)
+    LAD_INPUT_TOKEN_PRICE_PER_MILLION: float = 0.30
+    LAD_OUTPUT_TOKEN_PRICE_PER_MILLION: float = 2.50
 
     # --- LiteLLM (proxy pour modèles récents) ---
 
@@ -109,6 +113,22 @@ class Configuration:
     def use_litellm(self) -> bool:
         """True si LiteLLM est configuré avec une URL et une clé valide."""
         return bool(self.litellm_api_base and self.litellm_api_key and self.litellm_api_key != "CHANGE_ME")
+
+    @property
+    def show_raw_rad(self) -> bool:
+        return os.getenv("VAR_LLM_SHOW_RAW_RAD", "false").lower() == "true"
+
+    @property
+    def show_raw_lad(self) -> bool:
+        return os.getenv("VAR_LLM_SHOW_RAW_LAD", "false").lower() == "true"
+
+    @property
+    def show_cost(self) -> bool:
+        return os.getenv("VAR_LLM_SHOW_COST", "true").lower() == "true"
+
+    @property
+    def show_latency(self) -> bool:
+        return os.getenv("VAR_LLM_SHOW_LATENCY", "true").lower() == "true"
 
     @property
     def document_types(self) -> list[str]:
