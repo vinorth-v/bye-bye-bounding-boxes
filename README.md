@@ -1,9 +1,18 @@
-# KYC Document Processing
+# Bye Bye Bounding Boxes 👋🏾
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-Traitement automatique de documents KYC (Know Your Customer) avec des LLM multimodaux (Gemini, GPT-4V, Claude).
+Démonstrateur de traitement documentaire avec les LLM multimodaux. Cas d'usage : KYC bancaire (CNI, passeport, permis, RIB, justificatifs).
+Le projet montre qu'on peut faire en 2 jours ce qui prenait 6 mois en deep learning classique : sans dataset annoté, sans entraînement, sans bounding boxes.
+D'où le nom du repo.
+
+---
+
+📖 **Article associé** : [De 6 mois à 2 jours : la révolution LLM pour le traitement documentaire](https://blog.octo.com/de-6-mois-a-2-jours--la-revolution-llm-pour-le-traitement-documentaire) sur le blog OCTO  
+🎤 **Talk** : présenté à La Grosse Conf 2026, Caen.Tech 2026 et au Comptoir OCTO ([replay YouTube](https://youtu.be/EiCVoxKuQ0E))
+
+---
 
 ## Pourquoi ce projet ?
 
@@ -60,8 +69,8 @@ Pour créer un système de classification et extraction de documents KYC avec de
 
 ```bash
 # Cloner le projet
-git clone https://github.com/votre-username/kyc-document-processing.git
-cd kyc-document-processing
+git clone https://github.com/vinorth-v/bye-bye-bounding-boxes.git
+cd bye-bye-bounding-boxes
 
 # Installer les dépendances
 uv sync
@@ -114,7 +123,7 @@ just test    # Lance les tests
 ## Architecture
 
 ```
-kyc-document-processing/
+bye-bye-bounding-boxes/
 ├── src/
 │   ├── chains/
 │   │   ├── schemas/
