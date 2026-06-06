@@ -24,7 +24,7 @@ FORMULAIRES:
 - formulaire_inscription: Formulaire administratif avec de nombreuses cases à cocher, sections numérotées, demande d'inscription à une formation ou service
 
 Indices pour identifier le type:
-- CNI: Format carte plastique, mentions "RÉPUBLIQUE FRANÇAISE", "CARTE NATIONALE D'IDENTITÉ", photo, numéro à 12 chiffres
+- CNI: Format carte plastique, mentions "RÉPUBLIQUE FRANÇAISE", "CARTE NATIONALE D'IDENTITÉ", photo, numéro à 9 caractères (nouvelle génération depuis 2021) ou 12 caractères (ancienne génération)
 - Passeport: Format livret, couverture bordeaux, mentions "PASSEPORT" et "UNION EUROPÉENNE", zone MRZ en bas
 - Permis de conduire: Format carte rose, logo européen, mentions des catégories (A, B, etc.), cases cochées
 - Justificatif domicile: Facture de fournisseur (EDF, Orange, etc.), adresse client, montant, date récente
@@ -47,7 +47,7 @@ PROMPT_EXTRACTION_CNI = """Tu es un système d'extraction de données de Carte N
 Extrais TOUTES les informations suivantes du document fourni:
 
 INFORMATIONS OBLIGATOIRES:
-- numero_document: Numéro de la CNI (12 caractères alphanumériques)
+- numero_document: Numéro de la CNI (9 caractères alphanumériques pour la nouvelle génération depuis 2021, ou 12 caractères pour l'ancienne génération)
 - nom: Nom de famille (en MAJUSCULES sur la carte)
 - prenom: Prénom(s)
 - sexe: M ou F
@@ -75,7 +75,7 @@ PROMPT_EXTRACTION_PASSEPORT = """Tu es un système d'extraction de données de p
 Extrais TOUTES les informations suivantes du document fourni :
 
 INFORMATIONS OBLIGATOIRES :
-- numero_passeport : Numéro du passeport (format : 2 chiffres + 7 lettres, ex : 24AX12345)
+- numero_passeport : Numéro du passeport (format : 2 chiffres + 2 lettres + 5 chiffres, ex : 24AX12345)
 - nom : Nom de famille (en MAJUSCULES)
 - prenom : Prénom(s)
 - sexe : M, F ou X
@@ -96,7 +96,7 @@ INFORMATIONS OPTIONNELLES :
 POINTS D'ATTENTION :
 - Le passeport français a une couverture bordeaux avec "UNION EUROPÉENNE" et "PASSEPORT"
 - La zone MRZ (Machine Readable Zone) contient des données encodées, copie-la exactement
-- Le numéro commence toujours par 2 chiffres puis 7 lettres
+- Le numéro commence toujours par 2 chiffres, puis 2 lettres, puis 5 chiffres
 - Validité : 10 ans pour adultes, 5 ans pour mineurs
 
 Réponds UNIQUEMENT en JSON structuré selon le schéma Passeport. Si une information est absente, indique null (sauf pour les champs obligatoires)."""
@@ -272,7 +272,7 @@ Fournis une conclusion claire: DOSSIER ACCEPTÉ ou DOSSIER REJETÉ avec les rais
 PROMPT_EXTRACTION_FORMULAIRE = """Tu es un expert en lecture automatique de documents (LAD) analysant un formulaire
 "DEMANDE D'INSCRIPTION - Formation professionnelle continue" (réf. DEMO-2026-05).
 
-Ce formulaire comporte 10 SECTIONS numérotées avec ~120 cases à cocher.
+Ce formulaire comporte 10 SECTIONS numérotées avec 140 cases à cocher.
 Tu connais la position EXACTE de chaque case. Suis les instructions section par section.
 
 ═══════════════════════════════════════════════════════════════════

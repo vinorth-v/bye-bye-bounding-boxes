@@ -1,6 +1,6 @@
 """Schémas Pydantic pour l'extraction du formulaire d'inscription complexe.
 
-Ce formulaire est le "climax" de la démo : ~120 cases à cocher détectées visuellement par le LLM !
+Ce formulaire est le "climax" de la démo : 140 cases à cocher détectées visuellement par le LLM !
 """
 
 from __future__ import annotations
@@ -541,7 +541,7 @@ class Engagements(BaseModel):
 
 
 class FormulaireInscription(BaseModel):
-    """Formulaire d'inscription complet - ~120 cases à cocher.
+    """Formulaire d'inscription complet - 140 cases à cocher.
 
     Ce schéma représente le formulaire DEMO-2026-05 avec 10 sections.
     C'est le document "climax" de la démo : beaucoup de cases à cocher
@@ -592,7 +592,7 @@ class FormulaireInscription(BaseModel):
     def nombre_cases_cochees(self) -> int:
         """Compte le nombre total de cases cochées dans le formulaire.
 
-        Utile pour la démo : "Le LLM a détecté X cases cochées sur ~120 possibles"
+        Utile pour la démo : "Le LLM a détecté X cases cochées sur 138 possibles"
         """
         count = 0
 

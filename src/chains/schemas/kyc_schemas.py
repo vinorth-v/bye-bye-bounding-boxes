@@ -44,13 +44,13 @@ class CarteIdentite(BaseModel):
     @field_validator("numero_document")
     @classmethod
     def validate_numero_cni(cls, v: str) -> str:
-        """Valide que le numéro de CNI fait exactement 12 caractères alphanumériques."""
+        """Valide le numéro de CNI : 12 caractères (ancienne CNI) ou 9 caractères (nouvelle CNI depuis 2021)."""
         cleaned = v.replace(" ", "").replace("-", "")
-        if len(cleaned) != 12 or not cleaned.isalnum():
-            raise ValueError(
-                f"Numéro de CNI invalide : doit faire 12 caractères alphanumériques, reçu '{v}'"
-            )
-        return cleaned
+        if cleaned.isalnum() and len(cleaned) in (9, 12):
+            return cleaned
+        raise ValueError(
+            f"Numéro de CNI invalide : doit faire 9 caractères (nouvelle CNI) ou 12 caractères (ancienne CNI), reçu '{v}'"
+        )
 
     prenom: str = Field(description="Prénom(s)")
 
@@ -91,7 +91,14 @@ class CarteIdentite(BaseModel):
     @property
     def est_valide(self) -> bool:
         """Vérifie si le document est encore valide."""
-        return self.date_expiration >= date.today()
+        try:
+            exp = self.date_expiration
+            if isinstance(exp, str):
+                from datetime import datetime
+                exp = datetime.strptime(exp, "%Y-%m-%d").date()
+            return exp >= date.today()
+        except Exception:
+            return False
 
 
 class TypeJustificatifDomicile(str, Enum):
@@ -194,17 +201,12 @@ class RIB(BaseModel):
 
     @model_validator(mode="after")
     def validate_iban_checksum(self):
-        """Valide le checksum de l'IBAN."""
-        if not self.iban:
+        """Valide le checksum de l'IBAN (algorithme modulo 97)."""
+        if not self.iban or len(self.iban) < 15:
             self.iban_valide = False
             return self
 
-        iban = self.iban.replace(" ", "")
-        if len(iban) < 15:
-            self.iban_valide = False
-            return self
-
-        rearranged = iban[4:] + iban[:4]
+        rearranged = self.iban[4:] + self.iban[:4]
         numeric = ""
         for char in rearranged:
             if char.isdigit():
@@ -212,7 +214,13 @@ class RIB(BaseModel):
             else:
                 numeric += str(ord(char) - ord("A") + 10)
 
-        self.iban_valide = int(numeric) % 97 == 1
+        if int(numeric) % 97 == 1:
+            self.iban_valide = True
+        else:
+            self.iban_valide = False
+            raise ValueError(
+                f"IBAN invalide : checksum modulo 97 incorrect pour '{self.iban}'"
+            )
         return self
 
 
@@ -376,7 +384,14 @@ class Passeport(BaseModel):
     @property
     def est_valide(self) -> bool:
         """Vérifie si le document est encore valide."""
-        return self.date_expiration >= date.today()
+        try:
+            exp = self.date_expiration
+            if isinstance(exp, str):
+                from datetime import datetime
+                exp = datetime.strptime(exp, "%Y-%m-%d").date()
+            return exp >= date.today()
+        except Exception:
+            return False
 
 
 class PermisConduire(BaseModel):
@@ -419,7 +434,14 @@ class PermisConduire(BaseModel):
     @property
     def est_valide(self) -> bool:
         """Vérifie si le document est encore valide."""
-        return self.date_expiration >= date.today()
+        try:
+            exp = self.date_expiration
+            if isinstance(exp, str):
+                from datetime import datetime
+                exp = datetime.strptime(exp, "%Y-%m-%d").date()
+            return exp >= date.today()
+        except Exception:
+            return False
 
 
 # Schéma de classification
@@ -456,6 +478,7 @@ class ResultatExtractionKYC(BaseModel):
         None, description="Données du formulaire d'inscription"
     )
     erreurs: list[str] = Field(default_factory=list, description="Messages d'erreur")
+    erreurs_metier: list[dict] = Field(default_factory=list, description="Erreurs de règles métier structurées pour affichage")
     avertissements: list[str] = Field(default_factory=list, description="Messages d'avertissement")
 
 
