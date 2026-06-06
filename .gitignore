@@ -36,3 +36,6 @@ credentials.json
 # Lock files (régénérés par uv sync)
 uv.lock
 perso_docs/
+
+# Artefacts perso
+Affiche_A0_Vinorth_Print_HD.pdf

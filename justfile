@@ -66,37 +66,37 @@ check: ruff test
 # 🪪 Traite une carte nationale d'identité
 [group('demo')]
 cni:
-    PYTHONPATH=src uv run python src/main.py examples/cni.webp
+    PYTHONPATH=src uv run python src/main.py examples/kyc/cni.webp
 
 # 🛂 Traite un passeport
 [group('demo')]
 passeport:
-    PYTHONPATH=src uv run python src/main.py examples/passeport.webp
+    PYTHONPATH=src uv run python src/main.py examples/kyc/passeport.webp
 
 # 🚗 Traite le permis recto/verso 
 [group('demo')]
 permis:
-    PYTHONPATH=src uv run python src/main.py examples/permis_recto_verso.pdf
+    PYTHONPATH=src uv run python src/main.py examples/kyc/permis_recto_verso.pdf
 
 # 🏦 Traite un RIB
 [group('demo')]
 rib:
-    PYTHONPATH=src uv run python src/main.py examples/rib.png
+    PYTHONPATH=src uv run python src/main.py examples/kyc/rib.png
 
 # ⚡ Traite une facture EDF
 [group('demo')]
 edf:
-    PYTHONPATH=src uv run python src/main.py examples/jdom_edf.pdf
+    PYTHONPATH=src uv run python src/main.py examples/kyc/jdom_edf.pdf
 
 # 🏛️ Traite un avis d'impôts
 [group('demo')]
 impots:
-    PYTHONPATH=src uv run python src/main.py examples/jdom_impots.pdf
+    PYTHONPATH=src uv run python src/main.py examples/kyc/jdom_impots.pdf
 
 # 📋 Traite le formulaire d'inscription (CLIMAX de la démo - ~120 cases!)
 [group('demo')]
 formulaire:
-    PYTHONPATH=src uv run python src/main.py examples/formulaire_inscription.pdf
+    PYTHONPATH=src uv run python src/main.py examples/demo_vinorth.pdf
 
 # 📂 Traite tous les documents du dossier examples/
 [group('demo')]
