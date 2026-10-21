@@ -425,16 +425,39 @@ class KYCDocumentChain:
             result = result[0]
         return result
 
+    def _generate_and_parse(
+        self, role: str, prompt: str, image_path: str | Path, max_attempts: int = 3
+    ) -> tuple[dict, dict | None]:
+        """Génère + parse le JSON, en régénérant si le modèle renvoie du JSON malformé.
+
+        Un JSON cassé (guillemet non fermé, virgule manquante...) n'est pas une erreur
+        réseau (donc pas rattrapée par _call_with_retry) mais reste un aléa ponctuel du
+        modèle: régénérer redonne généralement un JSON valide.
+        """
+        last_error: Exception | None = None
+        for attempt in range(1, max_attempts + 1):
+            text, token_usage = self._generate(role, prompt, image_path)
+            try:
+                return self._parse_json(text), token_usage
+            except (json.JSONDecodeError, IndexError) as e:
+                last_error = e
+                if attempt < max_attempts:
+                    print(
+                        f"   ⚠️  JSON malformé côté modèle ({e}), "
+                        f"régénération {attempt}/{max_attempts - 1}..."
+                    )
+        assert last_error is not None
+        raise last_error
+
     def classify_document(
         self, image_path: str | Path
     ) -> tuple[ClassificationDocument, dict | None]:
         """Classifie le type de document."""
-        text, token_usage = self._generate("rad", PROMPT_CLASSIFICATION, image_path)
+        result_json, token_usage = self._generate_and_parse("rad", PROMPT_CLASSIFICATION, image_path)
 
         if token_usage:
             self._log_token_usage("Classification", token_usage, role="rad")
 
-        result_json = self._parse_json(text)
         if self.config.show_raw_rad:
             print("\n📋 JSON brut RAD:\n")
             print(json.dumps(result_json, ensure_ascii=False, indent=2))
@@ -442,12 +465,11 @@ class KYCDocumentChain:
 
     def extract_cni(self, image_path: str | Path) -> tuple[CarteIdentite, dict | None]:
         """Extrait les données d'une Carte Nationale d'Identité."""
-        text, token_usage = self._generate("lad", PROMPT_EXTRACTION_CNI, image_path)
+        result_json, token_usage = self._generate_and_parse("lad", PROMPT_EXTRACTION_CNI, image_path)
 
         if token_usage:
             self._log_token_usage("Extraction CNI", token_usage)
 
-        result_json = self._parse_json(text)
         if self.config.show_raw_lad:
             print("\n📋 JSON brut LAD:\n")
             print(json.dumps(result_json, ensure_ascii=False, indent=2))
@@ -458,12 +480,11 @@ class KYCDocumentChain:
 
     def extract_passeport(self, image_path: str | Path) -> tuple[Passeport, dict | None]:
         """Extrait les données d'un passeport."""
-        text, token_usage = self._generate("lad", PROMPT_EXTRACTION_PASSEPORT, image_path)
+        result_json, token_usage = self._generate_and_parse("lad", PROMPT_EXTRACTION_PASSEPORT, image_path)
 
         if token_usage:
             self._log_token_usage("Extraction Passeport", token_usage)
 
-        result_json = self._parse_json(text)
         if self.config.show_raw_lad:
             print("\n📋 JSON brut LAD:\n")
             print(json.dumps(result_json, ensure_ascii=False, indent=2))
@@ -474,12 +495,11 @@ class KYCDocumentChain:
 
     def extract_permis(self, image_path: str | Path) -> tuple[PermisConduire, dict | None]:
         """Extrait les données d'un permis de conduire."""
-        text, token_usage = self._generate("lad", PROMPT_EXTRACTION_PERMIS, image_path)
+        result_json, token_usage = self._generate_and_parse("lad", PROMPT_EXTRACTION_PERMIS, image_path)
 
         if token_usage:
             self._log_token_usage("Extraction Permis", token_usage)
 
-        result_json = self._parse_json(text)
         if self.config.show_raw_lad:
             print("\n📋 JSON brut LAD:\n")
             print(json.dumps(result_json, ensure_ascii=False, indent=2))
@@ -492,12 +512,13 @@ class KYCDocumentChain:
         self, image_path: str | Path
     ) -> tuple[JustificatifDomicile, dict | None]:
         """Extrait les données d'un justificatif de domicile."""
-        text, token_usage = self._generate("lad", PROMPT_EXTRACTION_JUSTIFICATIF, image_path)
+        result_json, token_usage = self._generate_and_parse(
+            "lad", PROMPT_EXTRACTION_JUSTIFICATIF, image_path
+        )
 
         if token_usage:
             self._log_token_usage("Extraction Justificatif", token_usage)
 
-        result_json = self._parse_json(text)
         if self.config.show_raw_lad:
             print("\n📋 JSON brut LAD:\n")
             print(json.dumps(result_json, ensure_ascii=False, indent=2))
@@ -508,12 +529,11 @@ class KYCDocumentChain:
 
     def extract_rib(self, image_path: str | Path) -> tuple[RIB, dict | None]:
         """Extrait les données d'un RIB."""
-        text, token_usage = self._generate("lad", PROMPT_EXTRACTION_RIB, image_path)
+        result_json, token_usage = self._generate_and_parse("lad", PROMPT_EXTRACTION_RIB, image_path)
 
         if token_usage:
             self._log_token_usage("Extraction RIB", token_usage)
 
-        result_json = self._parse_json(text)
         if self.config.show_raw_lad:
             print("\n📋 JSON brut LAD:\n")
             print(json.dumps(result_json, ensure_ascii=False, indent=2))
@@ -530,12 +550,12 @@ class KYCDocumentChain:
 
         C'est LE CLIMAX DE LA DÉMO: 140 cases à cocher détectées visuellement!
         """
-        text, token_usage = self._generate("lad", PROMPT_EXTRACTION_FORMULAIRE, image_path)
+        result_json, token_usage = self._generate_and_parse(
+            "lad", PROMPT_EXTRACTION_FORMULAIRE, image_path
+        )
 
         if token_usage:
             self._log_token_usage("Extraction Formulaire", token_usage)
-
-        result_json = self._parse_json(text)
 
         print("\n✅ EXTRACTION RÉUSSIE")
 
