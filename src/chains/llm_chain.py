@@ -46,6 +46,7 @@ def _call_with_retry(
     max_retries: int = 4,
     base_delay: float = 1.0,
     max_delay: float = 20.0,
+    verbose: bool = True,
 ) -> T:
     """Exécute func() avec backoff exponentiel + jitter sur les erreurs transitoires.
 
@@ -62,10 +63,11 @@ def _call_with_retry(
                 raise
             delay = min(base_delay * (2 ** (attempt - 1)), max_delay)
             delay += random.uniform(0, delay * 0.25)
-            print(
-                f"   ⚠️  Erreur transitoire ({e.__class__.__name__}), "
-                f"tentative {attempt}/{max_retries} dans {delay:.1f}s..."
-            )
+            if verbose:
+                print(
+                    f"   ⚠️  Erreur transitoire ({e.__class__.__name__}), "
+                    f"tentative {attempt}/{max_retries} dans {delay:.1f}s..."
+                )
             time.sleep(delay)
 
 
@@ -290,7 +292,8 @@ class KYCDocumentChain:
             lambda: model.generate_content(
                 [prompt, image_part],
                 generation_config=self._vertex_gen_config,
-            )
+            ),
+            verbose=self.config.show_retry_warnings,
         )
 
         token_usage = self._extract_vertex_tokens(response)
@@ -318,7 +321,9 @@ class KYCDocumentChain:
         ]
 
         llm = self._litellm_rad if role == "rad" else self._litellm_lad
-        response = _call_with_retry(lambda: llm.invoke(messages))
+        response = _call_with_retry(
+            lambda: llm.invoke(messages), verbose=self.config.show_retry_warnings
+        )
 
         token_usage = self._extract_litellm_tokens(response)
         return response.content, token_usage

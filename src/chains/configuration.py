@@ -131,6 +131,11 @@ class Configuration:
         return os.getenv("VAR_LLM_SHOW_LATENCY", "true").lower() == "true"
 
     @property
+    def show_retry_warnings(self) -> bool:
+        """Affiche les tentatives de retry sur erreurs transitoires (à couper pour une démo)."""
+        return os.getenv("VAR_LLM_SHOW_RETRY_WARNINGS", "true").lower() == "true"
+
+    @property
     def document_types(self) -> list[str]:
         """Types de documents supportés."""
         return self._config["document_types"]
