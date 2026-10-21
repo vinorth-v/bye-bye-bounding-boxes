@@ -8,9 +8,10 @@ Supporte deux backends:
 
 import base64
 import json
+import random
 import time
 import warnings
-from typing import get_args, get_origin
+from typing import Callable, TypeVar, get_args, get_origin
 
 warnings.filterwarnings("ignore", category=UserWarning, module="vertexai")
 from pathlib import Path
@@ -18,6 +19,54 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 from chains.configuration import Configuration
+
+
+T = TypeVar("T")
+
+# Marqueurs d'erreurs transitoires (5xx, quota, timeout) valant la peine d'être retentées.
+_TRANSIENT_ERROR_MARKERS = (
+    "500", "502", "503", "504",
+    "internal error", "internal server error",
+    "unavailable", "bad gateway", "gateway timeout",
+    "deadline exceeded", "timeout",
+    "resource exhausted", "rate limit", "too many requests",
+    "connection reset", "connection aborted",
+)
+
+
+def _is_transient_error(exc: Exception) -> bool:
+    """True si l'erreur ressemble à un problème réseau/backend passager (à retenter)."""
+    msg = str(exc).lower()
+    return any(marker in msg for marker in _TRANSIENT_ERROR_MARKERS)
+
+
+def _call_with_retry(
+    func: Callable[[], T],
+    *,
+    max_retries: int = 4,
+    base_delay: float = 1.0,
+    max_delay: float = 20.0,
+) -> T:
+    """Exécute func() avec backoff exponentiel + jitter sur les erreurs transitoires.
+
+    Pensé pour les démos live: un 500 ou un throttle passager de Vertex AI / LiteLLM
+    ne doit pas faire échouer tout le run.
+    """
+    attempt = 0
+    while True:
+        try:
+            return func()
+        except Exception as e:
+            attempt += 1
+            if attempt > max_retries or not _is_transient_error(e):
+                raise
+            delay = min(base_delay * (2 ** (attempt - 1)), max_delay)
+            delay += random.uniform(0, delay * 0.25)
+            print(
+                f"   ⚠️  Erreur transitoire ({e.__class__.__name__}), "
+                f"tentative {attempt}/{max_retries} dans {delay:.1f}s..."
+            )
+            time.sleep(delay)
 
 
 class ExtractionValidationError(Exception):
@@ -237,9 +286,11 @@ class KYCDocumentChain:
         image_part = Part.from_data(data=image_bytes, mime_type=mime_type)
         model = self._vertex_model_rad if role == "rad" else self._vertex_model_lad
 
-        response = model.generate_content(
-            [prompt, image_part],
-            generation_config=self._vertex_gen_config,
+        response = _call_with_retry(
+            lambda: model.generate_content(
+                [prompt, image_part],
+                generation_config=self._vertex_gen_config,
+            )
         )
 
         token_usage = self._extract_vertex_tokens(response)
@@ -267,7 +318,7 @@ class KYCDocumentChain:
         ]
 
         llm = self._litellm_rad if role == "rad" else self._litellm_lad
-        response = llm.invoke(messages)
+        response = _call_with_retry(lambda: llm.invoke(messages))
 
         token_usage = self._extract_litellm_tokens(response)
         return response.content, token_usage
